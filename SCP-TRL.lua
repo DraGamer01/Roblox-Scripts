@@ -1,21 +1,54 @@
 -- === SCP: THE RED LAKE ULTIMATE HUB ===
--- SCRIPT COMPLETO COM SIRIUS UI INTEGRADA
--- ===========================================
+-- USANDO RAYFIELD UI COM TEMA SERENITY
+-- ========================================
 
--- Carregar Sirius UI (biblioteca)
-local Library = loadstring(game:HttpGet('https://sirius.menu/sirius'))()
+-- Carregar Rayfield UI
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Verificar se a biblioteca carregou corretamente
-if not Library then
-    warn("Falha ao carregar a biblioteca Sirius UI!")
-    return
-end
+-- Carregar tema Serenity
+Rayfield:LoadTheme("Serenity")
 
 -- Criar janela principal
-local Window = Library:CreateWindow("SCP: The Red Lake Hub")
+local Window = Rayfield:CreateWindow({
+    Name = "SCP: The Red Lake Hub",
+    LoadingTitle = "Carregando Hub...",
+    LoadingSubtitle = "Aguarde...",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "SCPHubConfig",
+        FileName = "SCP_Hub"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = false,
+    KeySettings = {
+        Title = "SCP Hub",
+        Subtitle = "Key System",
+        Note = "Nenhuma chave necessária",
+        FileName = "Key",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Hello"}
+    }
+})
 
 -- Notificações do sistema
-Library:Notify("Hub Carregado!", "Use apenas em servidores privados!", 5)
+Rayfield:Notify({
+    Title = "Hub Carregado!",
+    Content = "Use apenas em servidores privados!",
+    Duration = 6.5,
+    Image = 4483345998,
+    Actions = {
+        Ignore = {
+            Name = "Ok",
+            Callback = function()
+            end
+        },
+    },
+})
 
 -- Variáveis globais
 local Players = game:GetService("Players")
@@ -109,122 +142,230 @@ end
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
         aimbotEnabled = not aimbotEnabled
-        Library:Notify("Aimbot", aimbotEnabled and "Ativado (F)" or "Desativado (F)", 2)
+        Rayfield:Notify({
+            Title = "Aimbot",
+            Content = aimbotEnabled and "Ativado (F)" or "Desativado (F)",
+            Duration = 3,
+            Image = 4483345998,
+        })
     end
 end)
 
 -- === ABA: ARMAS ===
-local WeaponTab = Window:CreateTab("Armas")
+local WeaponTab = Window:CreateTab("Armas", 4483345998)
 
 -- Seção da G18
-WeaponTab:CreateSection("Modificação da G18")
+local WeaponSection = WeaponTab:CreateSection("Modificação da G18")
 
 -- Sliders para armas
-local DamageSlider = WeaponTab:CreateSlider("Dano", 1, 100, 15, function(Value)
-    -- Será aplicado no botão
-end)
+local DamageSlider = WeaponTab:CreateSlider({
+    Name = "Dano",
+    Range = {1, 100},
+    Increment = 1,
+    Suffix = "Dano",
+    CurrentValue = 15,
+    Flag = "Damage",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
-local FireRateSlider = WeaponTab:CreateSlider("Cadência (RPM)", 50, 1200, 400, function(Value)
-    -- Será aplicado no botão
-end)
+local FireRateSlider = WeaponTab:CreateSlider({
+    Name = "Cadência (RPM)",
+    Range = {50, 1200},
+    Increment = 10,
+    Suffix = "RPM",
+    CurrentValue = 400,
+    Flag = "FireRate",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
-local MagazineSlider = WeaponTab:CreateSlider("Tamanho do Pente", 1, 50, 17, function(Value)
-    -- Será aplicado no botão
-end)
+local MagazineSlider = WeaponTab:CreateSlider({
+    Name = "Tamanho do Pente",
+    Range = {1, 50},
+    Increment = 1,
+    Suffix = "Munição",
+    CurrentValue = 17,
+    Flag = "Magazine",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
-local RecoilSlider = WeaponTab:CreateSlider("Recuo", 0, 5, 0.8, function(Value)
-    -- Será aplicado no botão
-end)
+local RecoilSlider = WeaponTab:CreateSlider({
+    Name = "Recuo",
+    Range = {0, 5},
+    Increment = 0.1,
+    Suffix = "Recuo",
+    CurrentValue = 0.8,
+    Flag = "Recoil",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
-local ReloadSlider = WeaponTab:CreateSlider("Tempo de Recarga", 0.1, 10, 2.2, function(Value)
-    -- Será aplicado no botão
-end)
+local ReloadSlider = WeaponTab:CreateSlider({
+    Name = "Tempo de Recarga",
+    Range = {0.1, 10},
+    Increment = 0.1,
+    Suffix = "Segundos",
+    CurrentValue = 2.2,
+    Flag = "ReloadTime",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
 -- Botão de aplicar modificações de arma
-WeaponTab:CreateButton("Aplicar Modificações da G18", function()
-    local gun = character:FindFirstChild("G18")
-    if not gun then
-        Library:Notify("Erro!", "Equipe a G18 primeiro!", 3)
-        return
-    end
-    
-    local config = gun:FindFirstChild("Configuration") or gun:FindFirstChild("GunStats") or gun
-    local applied = 0
-    
-    if config:FindFirstChild("Damage") then
-        keepModifying(config.Damage, "Value", DamageSlider)
-        applied = applied + 1
-    end
-    
-    if config:FindFirstChild("FireRate") then
-        keepModifying(config.FireRate, "Value", 60 / FireRateSlider)
-        applied = applied + 1
-    end
-    
-    if config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo") then
-        local mag = config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo")
-        keepModifying(mag, "Value", MagazineSlider)
-        applied = applied + 1
-    end
-    
-    if config:FindFirstChild("Recoil") then
-        keepModifying(config.Recoil, "Value", RecoilSlider)
-        applied = applied + 1
-    end
-    
-    if config:FindFirstChild("ReloadTime") then
-        keepModifying(config.ReloadTime, "Value", ReloadSlider)
-        applied = applied + 1
-    end
-    
-    Library:Notify("Sucesso!", "Aplicadas " .. applied .. " modificações!", 3)
-end)
+WeaponTab:CreateButton({
+    Name = "Aplicar Modificações da G18",
+    Callback = function()
+        local gun = character:FindFirstChild("G18")
+        if not gun then
+            Rayfield:Notify({
+                Title = "Erro!",
+                Content = "Equipe a G18 primeiro!",
+                Duration = 3,
+                Image = 4483345998,
+            })
+            return
+        end
+        
+        local config = gun:FindFirstChild("Configuration") or gun:FindFirstChild("GunStats") or gun
+        local applied = 0
+        
+        if config:FindFirstChild("Damage") then
+            keepModifying(config.Damage, "Value", DamageSlider.CurrentValue)
+            applied = applied + 1
+        end
+        
+        if config:FindFirstChild("FireRate") then
+            keepModifying(config.FireRate, "Value", 60 / FireRateSlider.CurrentValue)
+            applied = applied + 1
+        end
+        
+        if config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo") then
+            local mag = config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo")
+            keepModifying(mag, "Value", MagazineSlider.CurrentValue)
+            applied = applied + 1
+        end
+        
+        if config:FindFirstChild("Recoil") then
+            keepModifying(config.Recoil, "Value", RecoilSlider.CurrentValue)
+            applied = applied + 1
+        end
+        
+        if config:FindFirstChild("ReloadTime") then
+            keepModifying(config.ReloadTime, "Value", ReloadSlider.CurrentValue)
+            applied = applied + 1
+        end
+        
+        Rayfield:Notify({
+            Title = "Sucesso!",
+            Content = "Aplicadas " .. applied .. " modificações!",
+            Duration = 3,
+            Image = 4483345998,
+        })
+    end,
+})
 
 -- Seção do Aimbot
-WeaponTab:CreateSection("Aimbot")
+local AimbotSection = WeaponTab:CreateSection("Aimbot")
 
 -- Toggle do Aimbot
-WeaponTab:CreateToggle("Ativar Aimbot", false, function(Value)
-    aimbotEnabled = Value
-    if aimbotEnabled then
-        aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
-        table.insert(connections, aimbotConnection)
-        Library:Notify("Aimbot Ativado!", "Use F ou o toggle para desativar", 3)
-    else
-        if aimbotConnection then
-            aimbotConnection:Disconnect()
-            aimbotConnection = nil
+WeaponTab:CreateToggle({
+    Name = "Ativar Aimbot",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        aimbotEnabled = Value
+        if aimbotEnabled then
+            aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
+            table.insert(connections, aimbotConnection)
+            Rayfield:Notify({
+                Title = "Aimbot Ativado!",
+                Content = "Use F ou o toggle para desativar",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        else
+            if aimbotConnection then
+                aimbotConnection:Disconnect()
+                aimbotConnection = nil
+            end
+            Rayfield:Notify({
+                Title = "Aimbot Desativado!",
+                Content = "Aimbot desativado",
+                Duration = 3,
+                Image = 4483345998,
+            })
         end
-        Library:Notify("Aimbot Desativado!", "Aimbot desativado", 3)
-    end
-end)
+    end,
+})
 
-WeaponTab:CreateLabel("Pressione F para ativar/desativar rapidamente")
+WeaponTab:CreateParagraph({
+    Title = "Controles",
+    Content = "Pressione F para ativar/desativar rapidamente"
+})
 
 -- === ABA: MOVIMENTO ===
-local MovementTab = Window:CreateTab("Movimento")
+local MovementTab = Window:CreateTab("Movimento", 4483345998)
 
-MovementTab:CreateSection("Modificação de Movimento")
+local MovementSection = MovementTab:CreateSection("Modificação de Movimento")
 
-local WalkSpeedSlider = MovementTab:CreateSlider("Velocidade de Caminhada", 1, 1000, 16, function(Value)
-    -- Será aplicado no botão
-end)
+local WalkSpeedSlider = MovementTab:CreateSlider({
+    Name = "Velocidade de Caminhada",
+    Range = {1, 1000},
+    Increment = 1,
+    Suffix = "Studs/s",
+    CurrentValue = 16,
+    Flag = "WalkSpeed",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
-local JumpPowerSlider = MovementTab:CreateSlider("Força do Pulo", 1, 1000, 50, function(Value)
-    -- Será aplicado no botão
-end)
+local JumpPowerSlider = MovementTab:CreateSlider({
+    Name = "Força do Pulo",
+    Range = {1, 1000},
+    Increment = 1,
+    Suffix = "Força",
+    CurrentValue = 50,
+    Flag = "JumpPower",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
-local FlySpeedSlider = MovementTab:CreateSlider("Velocidade de Voo", 1, 1000, 50, function(Value)
-    -- Será aplicado no botão
-end)
+local FlySpeedSlider = MovementTab:CreateSlider({
+    Name = "Velocidade de Voo",
+    Range = {1, 1000},
+    Increment = 1,
+    Suffix = "Studs/s",
+    CurrentValue = 50,
+    Flag = "FlySpeed",
+    Callback = function(Value)
+        -- Será aplicado no botão
+    end,
+})
 
 -- Botão de aplicar movimento
-MovementTab:CreateButton("Aplicar Modificações de Movimento", function()
-    keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider)
-    keepModifying(humanoid, "JumpPower", JumpPowerSlider)
-    
-    Library:Notify("Sucesso!", "Modificações de movimento aplicadas!", 3)
-end)
+MovementTab:CreateButton({
+    Name = "Aplicar Modificações de Movimento",
+    Callback = function()
+        keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.CurrentValue)
+        keepModifying(humanoid, "JumpPower", JumpPowerSlider.CurrentValue)
+        
+        Rayfield:Notify({
+            Title = "Sucesso!",
+            Content = "Modificações de movimento aplicadas!",
+            Duration = 3,
+            Image = 4483345998,
+        })
+    end,
+})
 
 -- Sistema de Voo
 local flyEnabled = false
@@ -271,7 +412,7 @@ local function enableFly()
         end
         
         if moveVector.Magnitude > 0 then
-            moveVector = moveVector.Unit * FlySpeedSlider
+            moveVector = moveVector.Unit * FlySpeedSlider.CurrentValue
         end
         
         flyVelocity.Velocity = moveVector
@@ -300,16 +441,31 @@ local function disableFly()
     humanoid:ChangeState(Enum.HumanoidStateType.Running)
 end
 
-MovementTab:CreateToggle("Voo por Câmera", false, function(Value)
-    flyEnabled = Value
-    if flyEnabled then
-        enableFly()
-        Library:Notify("Voo Ativado!", "Use WASD + Espaço/Ctrl", 3)
-    else
-        disableFly()
-        Library:Notify("Voo Desativado!", "Voo desativado", 3)
-    end
-end)
+MovementTab:CreateToggle({
+    Name = "Voo por Câmera",
+    CurrentValue = false,
+    Flag = "FlyToggle",
+    Callback = function(Value)
+        flyEnabled = Value
+        if flyEnabled then
+            enableFly()
+            Rayfield:Notify({
+                Title = "Voo Ativado!",
+                Content = "Use WASD + Espaço/Ctrl",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        else
+            disableFly()
+            Rayfield:Notify({
+                Title = "Voo Desativado!",
+                Content = "Voo desativado",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        end
+    end,
+})
 
 -- Sistema de Noclip
 local noclipEnabled = false
@@ -344,21 +500,36 @@ local function disableNoclip()
     end
 end
 
-MovementTab:CreateToggle("Noclip", false, function(Value)
-    noclipEnabled = Value
-    if noclipEnabled then
-        enableNoclip()
-        Library:Notify("Noclip Ativado!", "Atravessar paredes ativado", 3)
-    else
-        disableNoclip()
-        Library:Notify("Noclip Desativado!", "Noclip desativado", 3)
-    end
-end)
+MovementTab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Flag = "NoclipToggle",
+    Callback = function(Value)
+        noclipEnabled = Value
+        if noclipEnabled then
+            enableNoclip()
+            Rayfield:Notify({
+                Title = "Noclip Ativado!",
+                Content = "Atravessar paredes ativado",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        else
+            disableNoclip()
+            Rayfield:Notify({
+                Title = "Noclip Desativado!",
+                Content = "Noclip desativado",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        end
+    end,
+})
 
 -- === ABA: JOGADOR ===
-local PlayerTab = Window:CreateTab("Jogador")
+local PlayerTab = Window:CreateTab("Jogador", 4483345998)
 
-PlayerTab:CreateSection("Modificações do Jogador")
+local PlayerSection = PlayerTab:CreateSection("Modificações do Jogador")
 
 -- God Mode
 local godEnabled = false
@@ -387,7 +558,12 @@ local function enableGodMode()
         end
     end
     
-    Library:Notify("God Mode Ativado!", "Imortalidade ativada!", 3)
+    Rayfield:Notify({
+        Title = "God Mode Ativado!",
+        Content = "Imortalidade ativada!",
+        Duration = 3,
+        Image = 4483345998,
+    })
 end
 
 local function disableGodMode()
@@ -405,84 +581,112 @@ local function disableGodMode()
         end
     end
     
-    Library:Notify("God Mode Desativado!", "Imortalidade desativada", 3)
+    Rayfield:Notify({
+        Title = "God Mode Desativado!",
+        Content = "Imortalidade desativada",
+        Duration = 3,
+        Image = 4483345998,
+    })
 end
 
-PlayerTab:CreateToggle("God Mode", false, function(Value)
-    godEnabled = Value
-    if godEnabled then
-        enableGodMode()
-    else
-        disableGodMode()
-    end
-end)
+PlayerTab:CreateToggle({
+    Name = "God Mode",
+    CurrentValue = false,
+    Flag = "GodModeToggle",
+    Callback = function(Value)
+        godEnabled = Value
+        if godEnabled then
+            enableGodMode()
+        else
+            disableGodMode()
+        end
+    end,
+})
 
 -- Sistema de Unload
-PlayerTab:CreateButton("DESCARREGAR SCRIPT COMPLETAMENTE", function()
-    Library:Notify("Descarregando...", "Removendo todas as modificações", 3)
-    
-    -- Desativar tudo
-    if flyEnabled then
-        disableFly()
-    end
-    
-    if noclipEnabled then
-        disableNoclip()
-    end
-    
-    if godEnabled then
-        disableGodMode()
-    end
-    
-    if aimbotEnabled then
-        aimbotEnabled = false
-        if aimbotConnection then
-            aimbotConnection:Disconnect()
-            aimbotConnection = nil
+PlayerTab:CreateButton({
+    Name = "DESCARREGAR SCRIPT COMPLETAMENTE",
+    Callback = function()
+        Rayfield:Notify({
+            Title = "Descarregando...",
+            Content = "Removendo todas as modificações",
+            Duration = 3,
+            Image = 4483345998,
+        })
+        
+        -- Desativar tudo
+        if flyEnabled then
+            disableFly()
         end
-    end
-    
-    -- Desconectar todas as conexões
-    for _, connection in pairs(connections) do
-        if connection then
-            connection:Disconnect()
+        
+        if noclipEnabled then
+            disableNoclip()
         end
-    end
-    
-    -- Resetar valores originais
-    for obj, values in pairs(originalValues) do
-        if obj and obj.Parent then
-            for valueName, originalValue in pairs(values) do
-                pcall(function()
-                    obj[valueName] = originalValue
-                end)
+        
+        if godEnabled then
+            disableGodMode()
+        end
+        
+        if aimbotEnabled then
+            aimbotEnabled = false
+            if aimbotConnection then
+                aimbotConnection:Disconnect()
+                aimbotConnection = nil
             end
         end
-    end
-    
-    -- Limpar variáveis
-    connections = {}
-    originalValues = {}
-    activeLoops = {}
-    
-    -- Fechar janela
-    Library:Destroy()
-    
-    Library:Notify("Script Descarregado!", "Todas as modificações removidas", 5)
-end)
+        
+        -- Desconectar todas as conexões
+        for _, connection in pairs(connections) do
+            if connection then
+                connection:Disconnect()
+            end
+        end
+        
+        -- Resetar valores originais
+        for obj, values in pairs(originalValues) do
+            if obj and obj.Parent then
+                for valueName, originalValue in pairs(values) do
+                    pcall(function()
+                        obj[valueName] = originalValue
+                    end)
+                end
+            end
+        end
+        
+        -- Limpar variáveis
+        connections = {}
+        originalValues = {}
+        activeLoops = {}
+        
+        -- Fechar Rayfield
+        Rayfield:Destroy()
+        
+        Rayfield:Notify({
+            Title = "Script Descarregado!",
+            Content = "Todas as modificações removidas",
+            Duration = 5,
+            Image = 4483345998,
+        })
+    end,
+})
 
 -- Sistema de persistência após morte
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = character:WaitForChild("Humanoid")
     
-    Library:Notify("Respawn Detectado!", "Reaplicando modificações...", 3)
+    Rayfield:Notify({
+        Title = "Respawn Detectado!",
+        Content = "Reaplicando modificações...",
+        Duration = 3,
+        Image = 4483345998,
+    })
     
     wait(1)
     
     -- Reaplicar movimento
-    keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider)
-    keepModifying(humanoid, "JumpPower", JumpPowerSlider)
+    keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.CurrentValue)
+    keepModifying(humanoid, "JumpPower", JumpPowerSlider.CurrentValue)
     
     -- Reaplicar God Mode
     if godEnabled then
@@ -495,9 +699,19 @@ player.CharacterAdded:Connect(function(newChar)
         table.insert(connections, aimbotConnection)
     end
     
-    Library:Notify("Modificações Reaplicadas!", "Todas as funções restauradas", 3)
+    Rayfield:Notify({
+        Title = "Modificações Reaplicadas!",
+        Content = "Todas as funções restauradas",
+        Duration = 3,
+        Image = 4483345998,
+    })
 end)
 
 humanoid.Died:Connect(function()
-    Library:Notify("Morte Detectada!", "Modificações serão restauradas no respawn", 3)
+    Rayfield:Notify({
+        Title = "Morte Detectada!",
+        Content = "Modificações serão restauradas no respawn",
+        Duration = 3,
+        Image = 4483345998,
+    })
 end)
