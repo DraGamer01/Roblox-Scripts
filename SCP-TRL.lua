@@ -1,57 +1,94 @@
 -- === SCP: THE RED LAKE ULTIMATE HUB ===
--- USANDO RAYFIELD UI COM TEMA SERENITY E TECLA H
--- ================================================
+-- USANDO RAYFIELD UI COM TEMA DARKBLUE + TRATAMENTO DE ERROS
+-- =========================================================
 
--- Carregar Rayfield UI
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Função de tratamento de erros
+local function handleError(context, err)
+    warn("[ERRO SCP HUB - " .. context .. "]: " .. tostring(err))
+    game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
+        Text = "[ERRO] " .. context .. ": " .. tostring(err),
+        Color = Color3.new(1, 0.2, 0.2)
+    })
+end
 
--- Criar janela principal com tema Serenity
-local Window = Rayfield:CreateWindow({
-    Name = "SCP: The Red Lake Hub",
-    Icon = 4483345998, -- Ícone do Roblox
-    LoadingTitle = "Carregando Hub...",
-    LoadingSubtitle = "Aguarde...",
-    ShowText = "SCP Hub",
-    Theme = "Serenity", -- Tema aplicado corretamente aqui
-    ToggleUIKeybind = "H", -- Tecla para mostrar/esconder a UI (ALTERADO PARA H)
-    DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "SCPHubConfig",
-        FileName = "SCP_Hub"
-    },
-    Discord = {
-        Enabled = false,
-        Invite = "noinvitelink",
-        RememberJoins = true
-    },
-    KeySystem = false,
-    KeySettings = {
-        Title = "SCP Hub",
-        Subtitle = "Key System",
-        Note = "Nenhuma chave necessária",
-        FileName = "Key",
-        SaveKey = true,
-        GrabKeyFromSite = false,
-        Key = {"Hello"}
-    }
-})
+-- Carregar Rayfield UI com tratamento de erros
+local Rayfield
+local success, err = pcall(function()
+    Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
 
--- Notificações do sistema
-Rayfield:Notify({
-    Title = "Hub Carregado!",
-    Content = "Use apenas em servidores privados! Pressione H para mostrar/esconder",
-    Duration = 6.5,
-    Image = 4483345998,
-    Actions = {
-        Ignore = {
-            Name = "Ok",
-            Callback = function()
-            end
+if not success then
+    handleError("Carregamento Rayfield", err)
+    return
+end
+
+-- Verificar se Rayfield foi carregado corretamente
+if not Rayfield then
+    handleError("Inicialização", "Rayfield não foi carregado corretamente")
+    return
+end
+
+-- Criar janela principal com tema DarkBlue
+local Window
+success, err = pcall(function()
+    Window = Rayfield:CreateWindow({
+        Name = "SCP: The Red Lake Hub",
+        Icon = 4483345998,
+        LoadingTitle = "Carregando Hub...",
+        LoadingSubtitle = "Aguarde...",
+        ShowText = "SCP Hub",
+        Theme = "DarkBlue", -- TEMA ALTERADO PARA DARKBLUE
+        ToggleUIKeybind = "H",
+        DisableRayfieldPrompts = false,
+        DisableBuildWarnings = false,
+        ConfigurationSaving = {
+            Enabled = true,
+            FolderName = "SCPHubConfig",
+            FileName = "SCP_Hub"
         },
-    },
-})
+        Discord = {
+            Enabled = false,
+            Invite = "noinvitelink",
+            RememberJoins = true
+        },
+        KeySystem = false,
+        KeySettings = {
+            Title = "SCP Hub",
+            Subtitle = "Key System",
+            Note = "Nenhuma chave necessária",
+            FileName = "Key",
+            SaveKey = true,
+            GrabKeyFromSite = false,
+            Key = {"Hello"}
+        }
+    })
+end)
+
+if not success then
+    handleError("Criação da Janela", err)
+    return
+end
+
+-- Notificações do sistema com tratamento de erros
+local success, err = pcall(function()
+    Rayfield:Notify({
+        Title = "Hub Carregado!",
+        Content = "Use apenas em servidores privados! Pressione H para mostrar/esconder",
+        Duration = 6.5,
+        Image = 4483345998,
+        Actions = {
+            Ignore = {
+                Name = "Ok",
+                Callback = function()
+                end
+            },
+        },
+    })
+end)
+
+if not success then
+    handleError("Notificação Inicial", err)
+end
 
 -- Variáveis globais
 local Players = game:GetService("Players")
@@ -68,9 +105,12 @@ local connections = {}
 local originalValues = {}
 local activeLoops = {}
 
--- Função para manter modificações
+-- Função para manter modificações com tratamento de erros
 local function keepModifying(targetObject, valueName, newValue)
-    if not targetObject or not targetObject.Parent then return end
+    if not targetObject or not targetObject.Parent then 
+        handleError("keepModifying", "Objeto inválido: " .. tostring(targetObject))
+        return 
+    end
     
     if not originalValues[targetObject] then
         originalValues[targetObject] = {}
@@ -105,7 +145,7 @@ end
 local aimbotEnabled = false
 local aimbotConnection
 
--- Função do Aimbot
+-- Função do Aimbot com tratamento de erros
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -145,17 +185,27 @@ end
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
         aimbotEnabled = not aimbotEnabled
-        Rayfield:Notify({
-            Title = "Aimbot",
-            Content = aimbotEnabled and "Ativado (F)" or "Desativado (F)",
-            Duration = 3,
-            Image = 4483345998,
-        })
+        pcall(function()
+            Rayfield:Notify({
+                Title = "Aimbot",
+                Content = aimbotEnabled and "Ativado (F)" or "Desativado (F)",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        end)
     end
 end)
 
 -- === ABA: ARMAS ===
-local WeaponTab = Window:CreateTab("Armas", 4483345998)
+local WeaponTab
+success, err = pcall(function()
+    WeaponTab = Window:CreateTab("Armas", 4483345998)
+end)
+
+if not success then
+    handleError("Criação da Aba Armas", err)
+    return
+end
 
 -- Seção da G18
 local WeaponSection = WeaponTab:CreateSection("Modificação da G18")
@@ -227,12 +277,14 @@ WeaponTab:CreateButton({
     Callback = function()
         local gun = character:FindFirstChild("G18")
         if not gun then
-            Rayfield:Notify({
-                Title = "Erro!",
-                Content = "Equipe a G18 primeiro!",
-                Duration = 3,
-                Image = 4483345998,
-            })
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "Erro!",
+                    Content = "Equipe a G18 primeiro!",
+                    Duration = 3,
+                    Image = 4483345998,
+                })
+            end)
             return
         end
         
@@ -265,12 +317,14 @@ WeaponTab:CreateButton({
             applied = applied + 1
         end
         
-        Rayfield:Notify({
-            Title = "Sucesso!",
-            Content = "Aplicadas " .. applied .. " modificações!",
-            Duration = 3,
-            Image = 4483345998,
-        })
+        pcall(function()
+            Rayfield:Notify({
+                Title = "Sucesso!",
+                Content = "Aplicadas " .. applied .. " modificações!",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        end)
     end,
 })
 
@@ -287,23 +341,27 @@ WeaponTab:CreateToggle({
         if aimbotEnabled then
             aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
             table.insert(connections, aimbotConnection)
-            Rayfield:Notify({
-                Title = "Aimbot Ativado!",
-                Content = "Use F ou o toggle para desativar",
-                Duration = 3,
-                Image = 4483345998,
-            })
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "Aimbot Ativado!",
+                    Content = "Use F ou o toggle para desativar",
+                    Duration = 3,
+                    Image = 4483345998,
+                })
+            end)
         else
             if aimbotConnection then
                 aimbotConnection:Disconnect()
                 aimbotConnection = nil
             end
-            Rayfield:Notify({
-                Title = "Aimbot Desativado!",
-                Content = "Aimbot desativado",
-                Duration = 3,
-                Image = 4483345998,
-            })
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "Aimbot Desativado!",
+                    Content = "Aimbot desativado",
+                    Duration = 3,
+                    Image = 4483345998,
+                })
+            end)
         end
     end,
 })
@@ -314,7 +372,15 @@ WeaponTab:CreateParagraph({
 })
 
 -- === ABA: MOVIMENTO ===
-local MovementTab = Window:CreateTab("Movimento", 4483345998)
+local MovementTab
+success, err = pcall(function()
+    MovementTab = Window:CreateTab("Movimento", 4483345998)
+end)
+
+if not success then
+    handleError("Criação da Aba Movimento", err)
+    return
+end
 
 local MovementSection = MovementTab:CreateSection("Modificação de Movimento")
 
@@ -361,12 +427,14 @@ MovementTab:CreateButton({
         keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.CurrentValue)
         keepModifying(humanoid, "JumpPower", JumpPowerSlider.CurrentValue)
         
-        Rayfield:Notify({
-            Title = "Sucesso!",
-            Content = "Modificações de movimento aplicadas!",
-            Duration = 3,
-            Image = 4483345998,
-        })
+        pcall(function()
+            Rayfield:Notify({
+                Title = "Sucesso!",
+                Content = "Modificações de movimento aplicadas!",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        end)
     end,
 })
 
@@ -452,20 +520,24 @@ MovementTab:CreateToggle({
         flyEnabled = Value
         if flyEnabled then
             enableFly()
-            Rayfield:Notify({
-                Title = "Voo Ativado!",
-                Content = "Use WASD + Espaço/Ctrl",
-                Duration = 3,
-                Image = 4483345998,
-            })
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "Voo Ativado!",
+                    Content = "Use WASD + Espaço/Ctrl",
+                    Duration = 3,
+                    Image = 4483345998,
+                })
+            end)
         else
             disableFly()
-            Rayfield:Notify({
-                Title = "Voo Desativado!",
-                Content = "Voo desativado",
-                Duration = 3,
-                Image = 4483345998,
-            })
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "Voo Desativado!",
+                    Content = "Voo desativado",
+                    Duration = 3,
+                    Image = 4483345998,
+                })
+            end)
         end
     end,
 })
@@ -511,26 +583,38 @@ MovementTab:CreateToggle({
         noclipEnabled = Value
         if noclipEnabled then
             enableNoclip()
-            Rayfield:Notify({
-                Title = "Noclip Ativado!",
-                Content = "Atravessar paredes ativado",
-                Duration = 3,
-                Image = 4483345998,
-            })
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "Noclip Ativado!",
+                    Content = "Atravessar paredes ativado",
+                    Duration = 3,
+                    Image = 4483345998,
+                })
+            end)
         else
             disableNoclip()
-            Rayfield:Notify({
-                Title = "Noclip Desativado!",
-                Content = "Noclip desativado",
-                Duration = 3,
-                Image = 4483345998,
-            })
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "Noclip Desativado!",
+                    Content = "Noclip desativado",
+                    Duration = 3,
+                    Image = 4483345998,
+                })
+            end)
         end
     end,
 })
 
 -- === ABA: JOGADOR ===
-local PlayerTab = Window:CreateTab("Jogador", 4483345998)
+local PlayerTab
+success, err = pcall(function()
+    PlayerTab = Window:CreateTab("Jogador", 4483345998)
+end)
+
+if not success then
+    handleError("Criação da Aba Jogador", err)
+    return
+end
 
 local PlayerSection = PlayerTab:CreateSection("Modificações do Jogador")
 
@@ -561,12 +645,14 @@ local function enableGodMode()
         end
     end
     
-    Rayfield:Notify({
-        Title = "God Mode Ativado!",
-        Content = "Imortalidade ativada!",
-        Duration = 3,
-        Image = 4483345998,
-    })
+    pcall(function()
+        Rayfield:Notify({
+            Title = "God Mode Ativado!",
+            Content = "Imortalidade ativada!",
+            Duration = 3,
+            Image = 4483345998,
+        })
+    end)
 end
 
 local function disableGodMode()
@@ -584,12 +670,14 @@ local function disableGodMode()
         end
     end
     
-    Rayfield:Notify({
-        Title = "God Mode Desativado!",
-        Content = "Imortalidade desativada",
-        Duration = 3,
-        Image = 4483345998,
-    })
+    pcall(function()
+        Rayfield:Notify({
+            Title = "God Mode Desativado!",
+            Content = "Imortalidade desativada",
+            Duration = 3,
+            Image = 4483345998,
+        })
+    end)
 end
 
 PlayerTab:CreateToggle({
@@ -610,12 +698,14 @@ PlayerTab:CreateToggle({
 PlayerTab:CreateButton({
     Name = "DESCARREGAR SCRIPT COMPLETAMENTE",
     Callback = function()
-        Rayfield:Notify({
-            Title = "Descarregando...",
-            Content = "Removendo todas as modificações",
-            Duration = 3,
-            Image = 4483345998,
-        })
+        pcall(function()
+            Rayfield:Notify({
+                Title = "Descarregando...",
+                Content = "Removendo todas as modificações",
+                Duration = 3,
+                Image = 4483345998,
+            })
+        end)
         
         -- Desativar tudo
         if flyEnabled then
@@ -662,14 +752,18 @@ PlayerTab:CreateButton({
         activeLoops = {}
         
         -- Fechar Rayfield
-        Rayfield:Destroy()
+        pcall(function()
+            Rayfield:Destroy()
+        end)
         
-        Rayfield:Notify({
-            Title = "Script Descarregado!",
-            Content = "Todas as modificações removidas",
-            Duration = 5,
-            Image = 4483345998,
-        })
+        pcall(function()
+            Rayfield:Notify({
+                Title = "Script Descarregado!",
+                Content = "Todas as modificações removidas",
+                Duration = 5,
+                Image = 4483345998,
+            })
+        end)
     end,
 })
 
@@ -678,12 +772,14 @@ player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = character:WaitForChild("Humanoid")
     
-    Rayfield:Notify({
-        Title = "Respawn Detectado!",
-        Content = "Reaplicando modificações...",
-        Duration = 3,
-        Image = 4483345998,
-    })
+    pcall(function()
+        Rayfield:Notify({
+            Title = "Respawn Detectado!",
+            Content = "Reaplicando modificações...",
+            Duration = 3,
+            Image = 4483345998,
+        })
+    end)
     
     wait(1)
     
@@ -702,18 +798,32 @@ player.CharacterAdded:Connect(function(newChar)
         table.insert(connections, aimbotConnection)
     end
     
-    Rayfield:Notify({
-        Title = "Modificações Reaplicadas!",
-        Content = "Todas as funções restauradas",
-        Duration = 3,
-        Image = 4483345998,
-    })
+    pcall(function()
+        Rayfield:Notify({
+            Title = "Modificações Reaplicadas!",
+            Content = "Todas as funções restauradas",
+            Duration = 3,
+            Image = 4483345998,
+        })
+    end)
 end)
 
 humanoid.Died:Connect(function()
+    pcall(function()
+        Rayfield:Notify({
+            Title = "Morte Detectada!",
+            Content = "Modificações serão restauradas no respawn",
+            Duration = 3,
+            Image = 4483345998,
+        })
+    end)
+end)
+
+-- Notificação final de sucesso
+pcall(function()
     Rayfield:Notify({
-        Title = "Morte Detectada!",
-        Content = "Modificações serão restauradas no respawn",
+        Title = "Hub Inicializado!",
+        Content = "Todos os sistemas carregados com sucesso!",
         Duration = 3,
         Image = 4483345998,
     })
