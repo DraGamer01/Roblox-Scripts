@@ -1,6 +1,6 @@
 -- === SCP: THE RED LAKE ULTIMATE HUB ===
--- USANDO RAYFIELD UI COM TEMA SERENITY (CORRIGIDO)
--- =================================================
+-- USANDO RAYFIELD UI COM TEMA SERENITY E TECLA H
+-- ================================================
 
 -- Carregar Rayfield UI
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -13,7 +13,7 @@ local Window = Rayfield:CreateWindow({
     LoadingSubtitle = "Aguarde...",
     ShowText = "SCP Hub",
     Theme = "Serenity", -- Tema aplicado corretamente aqui
-    ToggleUIKeybind = "RightShift", -- Tecla para mostrar/esconder a UI
+    ToggleUIKeybind = "H", -- Tecla para mostrar/esconder a UI (ALTERADO PARA H)
     DisableRayfieldPrompts = false,
     DisableBuildWarnings = false,
     ConfigurationSaving = {
@@ -41,7 +41,7 @@ local Window = Rayfield:CreateWindow({
 -- Notificações do sistema
 Rayfield:Notify({
     Title = "Hub Carregado!",
-    Content = "Use apenas em servidores privados!",
+    Content = "Use apenas em servidores privados! Pressione H para mostrar/esconder",
     Duration = 6.5,
     Image = 4483345998,
     Actions = {
