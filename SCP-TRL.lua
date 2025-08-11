@@ -1,9 +1,15 @@
 -- === SCP: THE RED LAKE ULTIMATE HUB ===
--- USANDO SIRIUS UI - VERSÃO ATUALIZADA
--- =======================================
+-- SCRIPT COMPLETO COM SIRIUS UI INTEGRADA
+-- ===========================================
 
--- Carregar Sirius UI
+-- Carregar Sirius UI (biblioteca)
 local Library = loadstring(game:HttpGet('https://sirius.menu/sirius'))()
+
+-- Verificar se a biblioteca carregou corretamente
+if not Library then
+    warn("Falha ao carregar a biblioteca Sirius UI!")
+    return
+end
 
 -- Criar janela principal
 local Window = Library:CreateWindow("SCP: The Red Lake Hub")
