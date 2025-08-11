@@ -1,27 +1,50 @@
--- === SCP: THE RED LAKE ULTIMATE HUB + AIMBOT ===
--- USANDO ORION LIBRARY - MODERNA E ATUALIZADA
--- ===============================================
+-- === SCP: THE RED LAKE ULTIMATE HUB ===
+-- USANDO RAYFIELD UI - ATUALIZADA E FUNCIONAL
+-- ===========================================
 
--- Carregar Orion Library
-local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
+-- Carregar Rayfield UI
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusMenu/rayfield/master/source.lua'))()
 
 -- Criar janela principal
-local Window = OrionLib:MakeWindow({
+local Window = Rayfield:CreateWindow({
     Name = "SCP: The Red Lake Hub",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "SCPHubConfig",
-    IntroText = "Carregando Hub...",
-    Icon = "rbxassetid://4483345998",
-    IntroIcon = "rbxassetid://4483345998"
+    LoadingTitle = "Carregando Hub...",
+    LoadingSubtitle = "Aguarde...",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "SCPHubConfig",
+        FileName = "SCP_Hub"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = false,
+    KeySettings = {
+        Title = "SCP Hub",
+        Subtitle = "Key System",
+        Note = "Nenhuma chave necessária",
+        FileName = "Key",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Hello"}
+    }
 })
 
 -- Notificações do sistema
-OrionLib:MakeNotification({
-    Name = "Hub Carregado!",
+Rayfield:Notify({
+    Title = "Hub Carregado!",
     Content = "Use apenas em servidores privados!",
-    Image = "rbxassetid://4483345998",
-    Time = 5
+    Duration = 5,
+    Image = 4483345998,
+    Actions = {
+        Ignore = {
+            Name = "Ok",
+            Callback = function()
+            end
+        },
+    },
 })
 
 -- Variáveis globais
@@ -76,7 +99,7 @@ end
 local aimbotEnabled = false
 local aimbotConnection
 
--- Função do Aimbot (baseada no Pastebin)
+-- Função do Aimbot
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -112,107 +135,97 @@ local function updateAimbot()
     end
 end
 
--- Controle do Aimbot
+-- Controle do Aimbot com tecla F
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
         aimbotEnabled = not aimbotEnabled
-        OrionLib:MakeNotification({
-            Name = "Aimbot",
+        Rayfield:Notify({
+            Title = "Aimbot",
             Content = aimbotEnabled and "Ativado (F)" or "Desativado (F)",
-            Image = "rbxassetid://4483345998",
-            Time = 2
+            Duration = 2,
+            Image = 4483345998,
         })
     end
 end)
 
 -- === ABA: ARMAS ===
-local WeaponTab = Window:MakeTab({
-    Name = "Armas",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+local WeaponTab = Window:CreateTab("Armas", 4483345998)
 
-local WeaponSection = WeaponTab:AddSection({
-    Name = "Modificação da G18"
-})
+-- Seção da G18
+local WeaponSection = WeaponTab:CreateSection("Modificação da G18")
 
 -- Sliders para armas
-local DamageSlider = WeaponSection:AddSlider({
+local DamageSlider = WeaponTab:CreateSlider({
     Name = "Dano",
-    Min = 1,
-    Max = 100,
-    Default = 15,
-    Color = Color3.fromRGB(255, 0, 0),
+    Range = {1, 100},
     Increment = 1,
-    ValueName = "Dano",
+    Suffix = "Dano",
+    CurrentValue = 15,
+    Flag = "Damage",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
-local FireRateSlider = WeaponSection:AddSlider({
+local FireRateSlider = WeaponTab:CreateSlider({
     Name = "Cadência (RPM)",
-    Min = 50,
-    Max = 1200,
-    Default = 400,
-    Color = Color3.fromRGB(255, 165, 0),
+    Range = {50, 1200},
     Increment = 10,
-    ValueName = "RPM",
+    Suffix = "RPM",
+    CurrentValue = 400,
+    Flag = "FireRate",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
-local MagazineSlider = WeaponSection:AddSlider({
+local MagazineSlider = WeaponTab:CreateSlider({
     Name = "Tamanho do Pente",
-    Min = 1,
-    Max = 50,
-    Default = 17,
-    Color = Color3.fromRGB(0, 255, 0),
+    Range = {1, 50},
     Increment = 1,
-    ValueName = "Munição",
+    Suffix = "Munição",
+    CurrentValue = 17,
+    Flag = "Magazine",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
-local RecoilSlider = WeaponSection:AddSlider({
+local RecoilSlider = WeaponTab:CreateSlider({
     Name = "Recuo",
-    Min = 0,
-    Max = 5,
-    Default = 0.8,
-    Color = Color3.fromRGB(0, 165, 255),
+    Range = {0, 5},
     Increment = 0.1,
-    ValueName = "Recuo",
+    Suffix = "Recuo",
+    CurrentValue = 0.8,
+    Flag = "Recoil",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
-local ReloadSlider = WeaponSection:AddSlider({
+local ReloadSlider = WeaponTab:CreateSlider({
     Name = "Tempo de Recarga",
-    Min = 0.1,
-    Max = 10,
-    Default = 2.2,
-    Color = Color3.fromRGB(255, 0, 255),
+    Range = {0.1, 10},
     Increment = 0.1,
-    ValueName = "Segundos",
+    Suffix = "Segundos",
+    CurrentValue = 2.2,
+    Flag = "ReloadTime",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
 -- Botão de aplicar modificações de arma
-WeaponSection:AddButton({
+WeaponTab:CreateButton({
     Name = "Aplicar Modificações da G18",
     Callback = function()
         local gun = character:FindFirstChild("G18")
         if not gun then
-            OrionLib:MakeNotification({
-                Name = "Erro!",
+            Rayfield:Notify({
+                Title = "Erro!",
                 Content = "Equipe a G18 primeiro!",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3,
+                Image = 4483345998,
             })
             return
         end
@@ -221,140 +234,134 @@ WeaponSection:AddButton({
         local applied = 0
         
         if config:FindFirstChild("Damage") then
-            keepModifying(config.Damage, "Value", DamageSlider.Value)
+            keepModifying(config.Damage, "Value", DamageSlider.CurrentValue)
             applied = applied + 1
         end
         
         if config:FindFirstChild("FireRate") then
-            keepModifying(config.FireRate, "Value", 60 / FireRateSlider.Value)
+            keepModifying(config.FireRate, "Value", 60 / FireRateSlider.CurrentValue)
             applied = applied + 1
         end
         
         if config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo") then
             local mag = config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo")
-            keepModifying(mag, "Value", MagazineSlider.Value)
+            keepModifying(mag, "Value", MagazineSlider.CurrentValue)
             applied = applied + 1
         end
         
         if config:FindFirstChild("Recoil") then
-            keepModifying(config.Recoil, "Value", RecoilSlider.Value)
+            keepModifying(config.Recoil, "Value", RecoilSlider.CurrentValue)
             applied = applied + 1
         end
         
         if config:FindFirstChild("ReloadTime") then
-            keepModifying(config.ReloadTime, "Value", ReloadSlider.Value)
+            keepModifying(config.ReloadTime, "Value", ReloadSlider.CurrentValue)
             applied = applied + 1
         end
         
-        OrionLib:MakeNotification({
-            Name = "Sucesso!",
+        Rayfield:Notify({
+            Title = "Sucesso!",
             Content = "Aplicadas " .. applied .. " modificações!",
-            Image = "rbxassetid://4483345998",
-            Time = 3
+            Duration = 3,
+            Image = 4483345998,
         })
-    end    
+    end,
 })
 
 -- Seção do Aimbot
-local AimbotSection = WeaponTab:AddSection({
-    Name = "Aimbot"
-})
+local AimbotSection = WeaponTab:CreateSection("Aimbot")
 
-AimbotSection:AddToggle({
+-- Toggle do Aimbot
+WeaponTab:CreateToggle({
     Name = "Ativar Aimbot",
-    Default = false,
+    CurrentValue = false,
+    Flag = "AimbotToggle",
     Callback = function(Value)
         aimbotEnabled = Value
         if aimbotEnabled then
             aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
             table.insert(connections, aimbotConnection)
-            OrionLib:MakeNotification({
-                Name = "Aimbot Ativado!",
+            Rayfield:Notify({
+                Title = "Aimbot Ativado!",
                 Content = "Use F ou o toggle para desativar",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3,
+                Image = 4483345998,
             })
         else
             if aimbotConnection then
                 aimbotConnection:Disconnect()
                 aimbotConnection = nil
             end
-            OrionLib:MakeNotification({
-                Name = "Aimbot Desativado!",
+            Rayfield:Notify({
+                Title = "Aimbot Desativado!",
                 Content = "Aimbot desativado",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3,
+                Image = 4483345998,
             })
         end
-    end    
+    end,
 })
 
-AimbotSection:AddParagraph("Controles", "Pressione F para ativar/desativar rapidamente")
+WeaponTab:CreateParagraph({
+    Title = "Controles",
+    Content = "Pressione F para ativar/desativar rapidamente"
+})
 
 -- === ABA: MOVIMENTO ===
-local MovementTab = Window:MakeTab({
-    Name = "Movimento",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+local MovementTab = Window:CreateTab("Movimento", 4483345998)
 
-local MovementSection = MovementTab:AddSection({
-    Name = "Modificação de Movimento"
-})
+local MovementSection = MovementTab:CreateSection("Modificação de Movimento")
 
-local WalkSpeedSlider = MovementSection:AddSlider({
+local WalkSpeedSlider = MovementTab:CreateSlider({
     Name = "Velocidade de Caminhada",
-    Min = 1,
-    Max = 1000,
-    Default = 16,
-    Color = Color3.fromRGB(0, 255, 255),
+    Range = {1, 1000},
     Increment = 1,
-    ValueName = "Studs/s",
+    Suffix = "Studs/s",
+    CurrentValue = 16,
+    Flag = "WalkSpeed",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
-local JumpPowerSlider = MovementSection:AddSlider({
+local JumpPowerSlider = MovementTab:CreateSlider({
     Name = "Força do Pulo",
-    Min = 1,
-    Max = 1000,
-    Default = 50,
-    Color = Color3.fromRGB(255, 255, 0),
+    Range = {1, 1000},
     Increment = 1,
-    ValueName = "Força",
+    Suffix = "Força",
+    CurrentValue = 50,
+    Flag = "JumpPower",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
-local FlySpeedSlider = MovementSection:AddSlider({
+local FlySpeedSlider = MovementTab:CreateSlider({
     Name = "Velocidade de Voo",
-    Min = 1,
-    Max = 1000,
-    Default = 50,
-    Color = Color3.fromRGB(255, 0, 128),
+    Range = {1, 1000},
     Increment = 1,
-    ValueName = "Studs/s",
+    Suffix = "Studs/s",
+    CurrentValue = 50,
+    Flag = "FlySpeed",
     Callback = function(Value)
         -- Será aplicado no botão
-    end
+    end,
 })
 
 -- Botão de aplicar movimento
-MovementSection:AddButton({
+MovementTab:CreateButton({
     Name = "Aplicar Modificações de Movimento",
     Callback = function()
-        keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.Value)
-        keepModifying(humanoid, "JumpPower", JumpPowerSlider.Value)
+        keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.CurrentValue)
+        keepModifying(humanoid, "JumpPower", JumpPowerSlider.CurrentValue)
         
-        OrionLib:MakeNotification({
-            Name = "Sucesso!",
+        Rayfield:Notify({
+            Title = "Sucesso!",
             Content = "Modificações de movimento aplicadas!",
-            Image = "rbxassetid://4483345998",
-            Time = 3
+            Duration = 3,
+            Image = 4483345998,
         })
-    end    
+    end,
 })
 
 -- Sistema de Voo
@@ -402,7 +409,7 @@ local function enableFly()
         end
         
         if moveVector.Magnitude > 0 then
-            moveVector = moveVector.Unit * FlySpeedSlider.Value
+            moveVector = moveVector.Unit * FlySpeedSlider.CurrentValue
         end
         
         flyVelocity.Velocity = moveVector
@@ -431,29 +438,30 @@ local function disableFly()
     humanoid:ChangeState(Enum.HumanoidStateType.Running)
 end
 
-MovementSection:AddToggle({
+MovementTab:CreateToggle({
     Name = "Voo por Câmera",
-    Default = false,
+    CurrentValue = false,
+    Flag = "FlyToggle",
     Callback = function(Value)
         flyEnabled = Value
         if flyEnabled then
             enableFly()
-            OrionLib:MakeNotification({
-                Name = "Voo Ativado!",
+            Rayfield:Notify({
+                Title = "Voo Ativado!",
                 Content = "Use WASD + Espaço/Ctrl",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3,
+                Image = 4483345998,
             })
         else
             disableFly()
-            OrionLib:MakeNotification({
-                Name = "Voo Desativado!",
+            Rayfield:Notify({
+                Title = "Voo Desativado!",
                 Content = "Voo desativado",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3,
+                Image = 4483345998,
             })
         end
-    end    
+    end,
 })
 
 -- Sistema de Noclip
@@ -489,41 +497,36 @@ local function disableNoclip()
     end
 end
 
-MovementSection:AddToggle({
+MovementTab:CreateToggle({
     Name = "Noclip",
-    Default = false,
+    CurrentValue = false,
+    Flag = "NoclipToggle",
     Callback = function(Value)
         noclipEnabled = Value
         if noclipEnabled then
             enableNoclip()
-            OrionLib:MakeNotification({
-                Name = "Noclip Ativado!",
+            Rayfield:Notify({
+                Title = "Noclip Ativado!",
                 Content = "Atravessar paredes ativado",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3,
+                Image = 4483345998,
             })
         else
             disableNoclip()
-            OrionLib:MakeNotification({
-                Name = "Noclip Desativado!",
+            Rayfield:Notify({
+                Title = "Noclip Desativado!",
                 Content = "Noclip desativado",
-                Image = "rbxassetid://4483345998",
-                Time = 3
+                Duration = 3,
+                Image = 4483345998,
             })
         end
-    end    
+    end,
 })
 
 -- === ABA: JOGADOR ===
-local PlayerTab = Window:MakeTab({
-    Name = "Jogador",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+local PlayerTab = Window:CreateTab("Jogador", 4483345998)
 
-local PlayerSection = PlayerTab:AddSection({
-    Name = "Modificações do Jogador"
-})
+local PlayerSection = PlayerTab:CreateSection("Modificações do Jogador")
 
 -- God Mode
 local godEnabled = false
@@ -552,11 +555,11 @@ local function enableGodMode()
         end
     end
     
-    OrionLib:MakeNotification({
-        Name = "God Mode Ativado!",
+    Rayfield:Notify({
+        Title = "God Mode Ativado!",
         Content = "Imortalidade ativada!",
-        Image = "rbxassetid://4483345998",
-        Time = 3
+        Duration = 3,
+        Image = 4483345998,
     })
 end
 
@@ -575,17 +578,18 @@ local function disableGodMode()
         end
     end
     
-    OrionLib:MakeNotification({
-        Name = "God Mode Desativado!",
+    Rayfield:Notify({
+        Title = "God Mode Desativado!",
         Content = "Imortalidade desativada",
-        Image = "rbxassetid://4483345998",
-        Time = 3
+        Duration = 3,
+        Image = 4483345998,
     })
 end
 
-PlayerSection:AddToggle({
+PlayerTab:CreateToggle({
     Name = "God Mode",
-    Default = false,
+    CurrentValue = false,
+    Flag = "GodModeToggle",
     Callback = function(Value)
         godEnabled = Value
         if godEnabled then
@@ -593,18 +597,18 @@ PlayerSection:AddToggle({
         else
             disableGodMode()
         end
-    end    
+    end,
 })
 
 -- Sistema de Unload
-PlayerSection:AddButton({
+PlayerTab:CreateButton({
     Name = "DESCARREGAR SCRIPT COMPLETAMENTE",
     Callback = function()
-        OrionLib:MakeNotification({
-            Name = "Descarregando...",
+        Rayfield:Notify({
+            Title = "Descarregando...",
             Content = "Removendo todas as modificações",
-            Image = "rbxassetid://4483345998",
-            Time = 3
+            Duration = 3,
+            Image = 4483345998,
         })
         
         -- Desativar tudo
@@ -651,16 +655,16 @@ PlayerSection:AddButton({
         originalValues = {}
         activeLoops = {}
         
-        -- Fechar Orion
-        OrionLib:Destroy()
+        -- Fechar Rayfield
+        Rayfield:Destroy()
         
-        OrionLib:MakeNotification({
-            Name = "Script Descarregado!",
+        Rayfield:Notify({
+            Title = "Script Descarregado!",
             Content = "Todas as modificações removidas",
-            Image = "rbxassetid://4483345998",
-            Time = 5
+            Duration = 5,
+            Image = 4483345998,
         })
-    end    
+    end,
 })
 
 -- Sistema de persistência após morte
@@ -668,18 +672,18 @@ player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = character:WaitForChild("Humanoid")
     
-    OrionLib:MakeNotification({
-        Name = "Respawn Detectado!",
+    Rayfield:Notify({
+        Title = "Respawn Detectado!",
         Content = "Reaplicando modificações...",
-        Image = "rbxassetid://4483345998",
-        Time = 3
+        Duration = 3,
+        Image = 4483345998,
     })
     
     wait(1)
     
     -- Reaplicar movimento
-    keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.Value)
-    keepModifying(humanoid, "JumpPower", JumpPowerSlider.Value)
+    keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.CurrentValue)
+    keepModifying(humanoid, "JumpPower", JumpPowerSlider.CurrentValue)
     
     -- Reaplicar God Mode
     if godEnabled then
@@ -692,22 +696,19 @@ player.CharacterAdded:Connect(function(newChar)
         table.insert(connections, aimbotConnection)
     end
     
-    OrionLib:MakeNotification({
-        Name = "Modificações Reaplicadas!",
+    Rayfield:Notify({
+        Title = "Modificações Reaplicadas!",
         Content = "Todas as funções restauradas",
-        Image = "rbxassetid://4483345998",
-        Time = 3
+        Duration = 3,
+        Image = 4483345998,
     })
 end)
 
 humanoid.Died:Connect(function()
-    OrionLib:MakeNotification({
-        Name = "Morte Detectada!",
+    Rayfield:Notify({
+        Title = "Morte Detectada!",
         Content = "Modificações serão restauradas no respawn",
-        Image = "rbxassetid://4483345998",
-        Time = 3
+        Duration = 3,
+        Image = 4483345998,
     })
 end)
-
--- Manter Orion aberto
-OrionLib:Init()
