@@ -1,18 +1,21 @@
 -- === SCP: THE RED LAKE ULTIMATE HUB ===
--- USANDO RAYFIELD UI COM TEMA SERENITY
--- ========================================
+-- USANDO RAYFIELD UI COM TEMA SERENITY (CORRIGIDO)
+-- =================================================
 
 -- Carregar Rayfield UI
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Carregar tema Serenity
-Rayfield:LoadTheme("Serenity")
-
--- Criar janela principal
+-- Criar janela principal com tema Serenity
 local Window = Rayfield:CreateWindow({
     Name = "SCP: The Red Lake Hub",
+    Icon = 4483345998, -- Ícone do Roblox
     LoadingTitle = "Carregando Hub...",
     LoadingSubtitle = "Aguarde...",
+    ShowText = "SCP Hub",
+    Theme = "Serenity", -- Tema aplicado corretamente aqui
+    ToggleUIKeybind = "RightShift", -- Tecla para mostrar/esconder a UI
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "SCPHubConfig",
