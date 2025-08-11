@@ -1,6 +1,6 @@
--- === SCP: THE RED LAKE ULTIMATE HUB ===
+-- === SCP: THE RED LAKE ULTIMATE HUB + AIMBOT ===
 -- USANDO ORION LIBRARY - MODERNA E ATUALIZADA
--- ===========================================
+-- ===============================================
 
 -- Carregar Orion Library
 local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
@@ -29,6 +29,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
+local Camera = workspace.CurrentCamera
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -70,6 +71,59 @@ local function keepModifying(targetObject, valueName, newValue)
     activeLoops[targetObject][valueName] = connection
     table.insert(connections, connection)
 end
+
+-- === AIMBOT INTEGRADO ===
+local aimbotEnabled = false
+local aimbotConnection
+
+-- Função do Aimbot (baseada no Pastebin)
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for _, targetPlayer in pairs(Players:GetPlayers()) do
+        if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") and targetPlayer.Character.Humanoid.Health > 0 then
+            local targetCharacter = targetPlayer.Character
+            local targetHead = targetCharacter:FindFirstChild("Head")
+            
+            if targetHead then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetHead.Position)
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                
+                if onScreen and distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = targetPlayer
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function updateAimbot()
+    if not aimbotEnabled then return end
+    
+    local closestPlayer = getClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+        local targetHead = closestPlayer.Character.Head
+        local lookVector = (targetHead.Position - Camera.CFrame.Position).unit
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + lookVector)
+    end
+end
+
+-- Controle do Aimbot
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F then
+        aimbotEnabled = not aimbotEnabled
+        OrionLib:MakeNotification({
+            Name = "Aimbot",
+            Content = aimbotEnabled and "Ativado (F)" or "Desativado (F)",
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
+    end
+end)
 
 -- === ABA: ARMAS ===
 local WeaponTab = Window:MakeTab({
@@ -201,6 +255,42 @@ WeaponSection:AddButton({
     end    
 })
 
+-- Seção do Aimbot
+local AimbotSection = WeaponTab:AddSection({
+    Name = "Aimbot"
+})
+
+AimbotSection:AddToggle({
+    Name = "Ativar Aimbot",
+    Default = false,
+    Callback = function(Value)
+        aimbotEnabled = Value
+        if aimbotEnabled then
+            aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
+            table.insert(connections, aimbotConnection)
+            OrionLib:MakeNotification({
+                Name = "Aimbot Ativado!",
+                Content = "Use F ou o toggle para desativar",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            if aimbotConnection then
+                aimbotConnection:Disconnect()
+                aimbotConnection = nil
+            end
+            OrionLib:MakeNotification({
+                Name = "Aimbot Desativado!",
+                Content = "Aimbot desativado",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end    
+})
+
+AimbotSection:AddParagraph("Controles", "Pressione F para ativar/desativar rapidamente")
+
 -- === ABA: MOVIMENTO ===
 local MovementTab = Window:MakeTab({
     Name = "Movimento",
@@ -285,10 +375,9 @@ local function enableFly()
     flyGyro.P = 5000
     flyGyro.Parent = character.PrimaryPart
     
-    local camera = workspace.CurrentCamera
     flyConnection = RunService.Heartbeat:Connect(function()
-        local lookVector = camera.CFrame.LookVector
-        local rightVector = camera.CFrame.RightVector
+        local lookVector = Camera.CFrame.LookVector
+        local rightVector = Camera.CFrame.RightVector
         local upVector = Vector3.new(0, 1, 0)
         
         local moveVector = Vector3.new(0, 0, 0)
@@ -317,7 +406,7 @@ local function enableFly()
         end
         
         flyVelocity.Velocity = moveVector
-        flyGyro.CFrame = camera.CFrame
+        flyGyro.CFrame = Camera.CFrame
     end)
     
     table.insert(connections, flyConnection)
@@ -531,6 +620,14 @@ PlayerSection:AddButton({
             disableGodMode()
         end
         
+        if aimbotEnabled then
+            aimbotEnabled = false
+            if aimbotConnection then
+                aimbotConnection:Disconnect()
+                aimbotConnection = nil
+            end
+        end
+        
         -- Desconectar todas as conexões
         for _, connection in pairs(connections) do
             if connection then
@@ -587,6 +684,12 @@ player.CharacterAdded:Connect(function(newChar)
     -- Reaplicar God Mode
     if godEnabled then
         enableGodMode()
+    end
+    
+    -- Reaplicar Aimbot
+    if aimbotEnabled then
+        aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
+        table.insert(connections, aimbotConnection)
     end
     
     OrionLib:MakeNotification({
