@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/DraGamer01/Roblox-Scripts/main/SCP-TRL/MainScript.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/DraGamer01/Roblox-Scripts/main/SCP-TRL"))()
