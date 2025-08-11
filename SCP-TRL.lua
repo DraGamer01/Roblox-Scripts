@@ -1,46 +1,85 @@
--- === SCP: THE RED LAKE ULTIMATE HUB ===
--- USANDO RAYFIELD UI COM TEMA DARKBLUE + TRATAMENTO DE ERROS
--- =========================================================
+-- === SCP: THE RED LAKE ULTIMATE HUB - VERSÃO CORRIGIDA ===
+-- COM TELETRANSPORTE POR CLIQUE E CORREÇÕES DE ERROS
+-- ====================================================
 
--- Função de tratamento de erros
-local function handleError(context, err)
-    warn("[ERRO SCP HUB - " .. context .. "]: " .. tostring(err))
-    game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-        Text = "[ERRO] " .. context .. ": " .. tostring(err),
-        Color = Color3.new(1, 0.2, 0.2)
-    })
+-- Função de diagnóstico avançado
+local function diagnosticar()
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    
+    print("=== DIAGNÓSTICO SCP HUB ===")
+    
+    -- Verificar God Mode
+    print("SISTEMA DE VIDA:")
+    if humanoid then
+        print("- Humanoid.Health:", humanoid.Health)
+        print("- Humanoid.MaxHealth:", humanoid.MaxHealth)
+        
+        -- Procurar por outros sistemas de vida
+        for _, obj in pairs(character:GetDescendants()) do
+            if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+                if string.find(string.lower(obj.Name), "health") or 
+                   string.find(string.lower(obj.Name), "hp") or
+                   string.find(string.lower(obj.Name), "vida") then
+                    print("- Valor alternativo encontrado:", obj.Name, "=", obj.Value)
+                end
+            end
+        end
+    end
+    
+    -- Verificar armas
+    print("\nSISTEMA DE ARMAS:")
+    for _, tool in pairs(character:GetChildren()) do
+        if tool:IsA("Tool") then
+            print("- Arma encontrada:", tool.Name)
+            for _, obj in pairs(tool:GetDescendants()) do
+                if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+                    print("  - Valor:", obj.Name, "=", obj.Value, "(Tipo:", obj.ClassName, ")")
+                end
+            end
+        end
+    end
+    
+    print("\n=== FIM DO DIAGNÓSTICO ===")
 end
 
--- Carregar Rayfield UI com tratamento de erros
+-- Carregar Rayfield com tratamento de erros melhorado
 local Rayfield
-local success, err = pcall(function()
-    Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local sucesso, msg = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 end)
 
-if not success then
-    handleError("Carregamento Rayfield", err)
+if not sucesso then
+    warn("[ERRO] Falha ao carregar Rayfield:", msg)
+    game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
+        Text = "[ERRO] Biblioteca UI não carregada: " .. tostring(msg),
+        Color = Color3.new(1, 0, 0)
+    })
     return
 end
 
--- Verificar se Rayfield foi carregado corretamente
+Rayfield = sucesso and Rayfield or nil
+
 if not Rayfield then
-    handleError("Inicialização", "Rayfield não foi carregado corretamente")
+    warn("[ERRO] Rayfield não está disponível")
     return
 end
 
--- Criar janela principal com tema DarkBlue
+-- Criar janela com tratamento robusto de erros e ícone padrão
 local Window
-success, err = pcall(function()
-    Window = Rayfield:CreateWindow({
+sucesso, msg = pcall(function()
+    return Rayfield:CreateWindow({
         Name = "SCP: The Red Lake Hub",
-        Icon = 4483345998,
+        Icon = 0, -- Usando ícone padrão (0) para evitar erros de template
         LoadingTitle = "Carregando Hub...",
         LoadingSubtitle = "Aguarde...",
         ShowText = "SCP Hub",
-        Theme = "DarkBlue", -- TEMA ALTERADO PARA DARKBLUE
+        Theme = "DarkBlue",
         ToggleUIKeybind = "H",
-        DisableRayfieldPrompts = false,
-        DisableBuildWarnings = false,
+        DisableRayfieldPrompts = true, -- Desativar prompts para evitar erros
+        DisableBuildWarnings = true, -- Desativar avisos de build
         ConfigurationSaving = {
             Enabled = true,
             FolderName = "SCPHubConfig",
@@ -64,31 +103,20 @@ success, err = pcall(function()
     })
 end)
 
-if not success then
-    handleError("Criação da Janela", err)
+if not sucesso or not Window then
+    warn("[ERRO] Falha ao criar janela:", msg)
     return
 end
 
--- Notificações do sistema com tratamento de erros
-local success, err = pcall(function()
+-- Notificação inicial
+pcall(function()
     Rayfield:Notify({
         Title = "Hub Carregado!",
-        Content = "Use apenas em servidores privados! Pressione H para mostrar/esconder",
-        Duration = 6.5,
-        Image = 4483345998,
-        Actions = {
-            Ignore = {
-                Name = "Ok",
-                Callback = function()
-                end
-            },
-        },
+        Content = "Pressione H para mostrar/esconder. Execute diagnóstico se necessário.",
+        Duration = 5,
+        Image = 0, -- Usando ícone padrão
     })
 end)
-
-if not success then
-    handleError("Notificação Inicial", err)
-end
 
 -- Variáveis globais
 local Players = game:GetService("Players")
@@ -100,568 +128,425 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
--- Sistema de persistência
+-- Sistema de persistência robusto
 local connections = {}
 local originalValues = {}
 local activeLoops = {}
 
--- Função para manter modificações com tratamento de erros
-local function keepModifying(targetObject, valueName, newValue)
-    if not targetObject or not targetObject.Parent then 
-        handleError("keepModifying", "Objeto inválido: " .. tostring(targetObject))
-        return 
+-- Função de modificação melhorada
+local function manterModificacao(objeto, propriedade, novoValor)
+    if not objeto or not objeto.Parent then return end
+    
+    -- Salvar valor original
+    if not originalValues[objeto] then
+        originalValues[objeto] = {}
+    end
+    if originalValues[objeto][propriedade] == nil then
+        originalValues[objeto][propriedade] = objeto[propriedade]
     end
     
-    if not originalValues[targetObject] then
-        originalValues[targetObject] = {}
-    end
-    if originalValues[targetObject][valueName] == nil then
-        originalValues[targetObject][valueName] = targetObject[valueName]
+    -- Parar loop existente
+    if activeLoops[objeto] and activeLoops[objeto][propriedade] then
+        activeLoops[objeto][propriedade]:Disconnect()
     end
     
-    if activeLoops[targetObject] and activeLoops[targetObject][valueName] then
-        activeLoops[targetObject][valueName]:Disconnect()
-    end
-    
-    local connection
-    connection = RunService.Heartbeat:Connect(function()
-        if targetObject and targetObject.Parent then
+    -- Criar novo loop
+    local conexao
+    conexao = RunService.Heartbeat:Connect(function()
+        if objeto and objeto.Parent then
             pcall(function()
-                targetObject[valueName] = newValue
+                objeto[propriedade] = novoValor
             end)
         else
-            connection:Disconnect()
+            conexao:Disconnect()
         end
     end)
     
-    if not activeLoops[targetObject] then
-        activeLoops[targetObject] = {}
+    if not activeLoops[objeto] then
+        activeLoops[objeto] = {}
     end
-    activeLoops[targetObject][valueName] = connection
-    table.insert(connections, connection)
+    activeLoops[objeto][propriedade] = conexao
+    table.insert(connections, conexao)
 end
 
--- === AIMBOT INTEGRADO ===
-local aimbotEnabled = false
-local aimbotConnection
+-- === SISTEMA DE TELETRANSPORTE POR CLIQUE ===
+local teletransporteAtivado = false
+local conexaoTeletransporte
 
--- Função do Aimbot com tratamento de erros
-local function getClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
+local function teletransportarPara(posicao)
+    if character and character.PrimaryPart then
+        character:SetPrimaryPartCFrame(CFrame.new(posicao))
+        pcall(function()
+            Rayfield:Notify({
+                Title = "TELETRANSPORTE",
+                Content = "Teletransportado com sucesso!",
+                Duration = 2,
+                Image = 0,
+            })
+        end)
+    end
+end
+
+local function onClickTeletransporte()
+    if not teletransporteAtivado then return end
     
-    for _, targetPlayer in pairs(Players:GetPlayers()) do
-        if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") and targetPlayer.Character.Humanoid.Health > 0 then
-            local targetCharacter = targetPlayer.Character
-            local targetHead = targetCharacter:FindFirstChild("Head")
+    local mouse = player:GetMouse()
+    if mouse.Target then
+        local posicao = mouse.Hit.Position
+        teletransportarPara(posicao)
+    end
+end
+
+-- === AIMBOT OTIMIZADO DO PASTEBIN ===
+local aimbotAtivado = false
+local conexaoAimbot
+
+-- Função para encontrar jogador mais próximo
+local function encontrarJogadorProximo()
+    local jogadorMaisProximo = nil
+    local distanciaMinima = math.huge
+    
+    for _, jogadorAlvo in pairs(Players:GetPlayers()) do
+        if jogadorAlvo ~= player and jogadorAlvo.Character and jogadorAlvo.Character:FindFirstChild("Humanoid") and jogadorAlvo.Character.Humanoid.Health > 0 then
+            local personagemAlvo = jogadorAlvo.Character
+            local cabeca = personagemAlvo:FindFirstChild("Head")
             
-            if targetHead then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(targetHead.Position)
-                local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+            if cabeca then
+                local posicaoTela, naTela = Camera:WorldToViewportPoint(cabeca.Position)
+                local distancia = (Vector2.new(posicaoTela.X, posicaoTela.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
                 
-                if onScreen and distance < shortestDistance then
-                    shortestDistance = distance
-                    closestPlayer = targetPlayer
+                if naTela and distancia < distanciaMinima then
+                    distanciaMinima = distancia
+                    jogadorMaisProximo = jogadorAlvo
                 end
             end
         end
     end
     
-    return closestPlayer
+    return jogadorMaisProximo
 end
 
-local function updateAimbot()
-    if not aimbotEnabled then return end
+-- Função de atualização do aimbot
+local function atualizarAimbot()
+    if not aimbotAtivado then return end
     
-    local closestPlayer = getClosestPlayer()
-    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
-        local targetHead = closestPlayer.Character.Head
-        local lookVector = (targetHead.Position - Camera.CFrame.Position).unit
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + lookVector)
+    local jogadorAlvo = encontrarJogadorProximo()
+    if jogadorAlvo and jogadorAlvo.Character and jogadorAlvo.Character:FindFirstChild("Head") then
+        local cabeca = jogadorAlvo.Character.Head
+        local vetorDirecao = (cabeca.Position - Camera.CFrame.Position).unit
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + vetorDirecao)
     end
 end
 
--- Controle do Aimbot com tecla F
+-- Controle do aimbot com tecla F
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
-        aimbotEnabled = not aimbotEnabled
+        aimbotAtivado = not aimbotAtivado
         pcall(function()
             Rayfield:Notify({
                 Title = "Aimbot",
-                Content = aimbotEnabled and "Ativado (F)" or "Desativado (F)",
-                Duration = 3,
-                Image = 4483345998,
+                Content = aimbotAtivado and "ATIVADO (F)" or "DESATIVADO (F)",
+                Duration = 2,
+                Image = 0,
             })
         end)
     end
 end)
 
 -- === ABA: ARMAS ===
-local WeaponTab
-success, err = pcall(function()
-    WeaponTab = Window:CreateTab("Armas", 4483345998)
-end)
+local abaArmas = Window:CreateTab("Armas", 0) -- Usando ícone padrão
+local secaoArmas = abaArmas:CreateSection("Modificação da G18")
 
-if not success then
-    handleError("Criação da Aba Armas", err)
-    return
-end
-
--- Seção da G18
-local WeaponSection = WeaponTab:CreateSection("Modificação da G18")
-
--- Sliders para armas
-local DamageSlider = WeaponTab:CreateSlider({
+-- Sliders
+local sliderDano = abaArmas:CreateSlider({
     Name = "Dano",
     Range = {1, 100},
     Increment = 1,
     Suffix = "Dano",
     CurrentValue = 15,
-    Flag = "Damage",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
+    Flag = "Dano",
+    Callback = function(v) end
 })
 
-local FireRateSlider = WeaponTab:CreateSlider({
+local sliderCadencia = abaArmas:CreateSlider({
     Name = "Cadência (RPM)",
     Range = {50, 1200},
     Increment = 10,
     Suffix = "RPM",
     CurrentValue = 400,
-    Flag = "FireRate",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
+    Flag = "Cadencia",
+    Callback = function(v) end
 })
 
-local MagazineSlider = WeaponTab:CreateSlider({
+local sliderPente = abaArmas:CreateSlider({
     Name = "Tamanho do Pente",
     Range = {1, 50},
     Increment = 1,
     Suffix = "Munição",
     CurrentValue = 17,
-    Flag = "Magazine",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
+    Flag = "Pente",
+    Callback = function(v) end
 })
 
-local RecoilSlider = WeaponTab:CreateSlider({
-    Name = "Recuo",
-    Range = {0, 5},
-    Increment = 0.1,
-    Suffix = "Recuo",
-    CurrentValue = 0.8,
-    Flag = "Recoil",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
-})
-
-local ReloadSlider = WeaponTab:CreateSlider({
-    Name = "Tempo de Recarga",
-    Range = {0.1, 10},
-    Increment = 0.1,
-    Suffix = "Segundos",
-    CurrentValue = 2.2,
-    Flag = "ReloadTime",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
-})
-
--- Botão de aplicar modificações de arma
-WeaponTab:CreateButton({
+-- Botão de aplicar com diagnóstico
+abaArmas:CreateButton({
     Name = "Aplicar Modificações da G18",
     Callback = function()
-        local gun = character:FindFirstChild("G18")
-        if not gun then
+        local arma = character:FindFirstChild("G18")
+        if not arma then
             pcall(function()
                 Rayfield:Notify({
-                    Title = "Erro!",
+                    Title = "ERRO",
                     Content = "Equipe a G18 primeiro!",
                     Duration = 3,
-                    Image = 4483345998,
+                    Image = 0,
                 })
             end)
             return
         end
         
-        local config = gun:FindFirstChild("Configuration") or gun:FindFirstChild("GunStats") or gun
-        local applied = 0
+        local modificacoesAplicadas = 0
         
-        if config:FindFirstChild("Damage") then
-            keepModifying(config.Damage, "Value", DamageSlider.CurrentValue)
-            applied = applied + 1
-        end
+        -- Tentar múltiplos caminhos para encontrar os valores
+        local caminhosParaTestar = {
+            "Configuration",
+            "GunStats",
+            "Values",
+            "Stats",
+            "" -- Raiz da arma
+        }
         
-        if config:FindFirstChild("FireRate") then
-            keepModifying(config.FireRate, "Value", 60 / FireRateSlider.CurrentValue)
-            applied = applied + 1
-        end
-        
-        if config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo") then
-            local mag = config:FindFirstChild("MagazineSize") or config:FindFirstChild("Ammo")
-            keepModifying(mag, "Value", MagazineSlider.CurrentValue)
-            applied = applied + 1
-        end
-        
-        if config:FindFirstChild("Recoil") then
-            keepModifying(config.Recoil, "Value", RecoilSlider.CurrentValue)
-            applied = applied + 1
-        end
-        
-        if config:FindFirstChild("ReloadTime") then
-            keepModifying(config.ReloadTime, "Value", ReloadSlider.CurrentValue)
-            applied = applied + 1
+        for _, caminho in pairs(caminhosParaTestar) do
+            local config = caminho ~= "" and arma:FindFirstChild(caminho) or arma
+            
+            if config then
+                -- Testar dano
+                if config:FindFirstChild("Damage") then
+                    manterModificacao(config.Damage, "Value", sliderDano.CurrentValue)
+                    modificacoesAplicadas = modificacoesAplicadas + 1
+                end
+                
+                -- Testar cadência
+                if config:FindFirstChild("FireRate") then
+                    manterModificacao(config.FireRate, "Value", 60 / sliderCadencia.CurrentValue)
+                    modificacoesAplicadas = modificacoesAplicadas + 1
+                end
+                
+                -- Testar pente
+                if config:FindFirstChild("MagazineSize") then
+                    manterModificacao(config.MagazineSize, "Value", sliderPente.CurrentValue)
+                    modificacoesAplicadas = modificacoesAplicadas + 1
+                elseif config:FindFirstChild("Ammo") then
+                    manterModificacao(config.Ammo, "Value", sliderPente.CurrentValue)
+                    modificacoesAplicadas = modificacoesAplicadas + 1
+                end
+            end
         end
         
         pcall(function()
             Rayfield:Notify({
-                Title = "Sucesso!",
-                Content = "Aplicadas " .. applied .. " modificações!",
+                Title = "RESULTADO",
+                Content = modificacoesAplicadas .. " modificações aplicadas!",
                 Duration = 3,
-                Image = 4483345998,
+                Image = 0,
             })
         end)
-    end,
+        
+        if modificacoesAplicadas == 0 then
+            diagnosticar()
+        end
+    end
 })
 
 -- Seção do Aimbot
-local AimbotSection = WeaponTab:CreateSection("Aimbot")
+abaArmas:CreateSection("Aimbot")
 
--- Toggle do Aimbot
-WeaponTab:CreateToggle({
+abaArmas:CreateToggle({
     Name = "Ativar Aimbot",
     CurrentValue = false,
-    Flag = "AimbotToggle",
-    Callback = function(Value)
-        aimbotEnabled = Value
-        if aimbotEnabled then
-            aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
-            table.insert(connections, aimbotConnection)
+    Flag = "Aimbot",
+    Callback = function(valor)
+        aimbotAtivado = valor
+        if aimbotAtivado then
+            conexaoAimbot = RunService.RenderStepped:Connect(atualizarAimbot)
+            table.insert(connections, conexaoAimbot)
             pcall(function()
                 Rayfield:Notify({
-                    Title = "Aimbot Ativado!",
-                    Content = "Use F ou o toggle para desativar",
+                    Title = "Aimbot ATIVADO",
+                    Content = "Use F para alternar",
                     Duration = 3,
-                    Image = 4483345998,
+                    Image = 0,
                 })
             end)
         else
-            if aimbotConnection then
-                aimbotConnection:Disconnect()
-                aimbotConnection = nil
+            if conexaoAimbot then
+                conexaoAimbot:Disconnect()
+                conexaoAimbot = nil
             end
             pcall(function()
                 Rayfield:Notify({
-                    Title = "Aimbot Desativado!",
+                    Title = "Aimbot DESATIVADO",
                     Content = "Aimbot desativado",
                     Duration = 3,
-                    Image = 4483345998,
+                    Image = 0,
                 })
             end)
         end
-    end,
+    end
 })
 
-WeaponTab:CreateParagraph({
+abaArmas:CreateParagraph({
     Title = "Controles",
     Content = "Pressione F para ativar/desativar rapidamente"
 })
 
 -- === ABA: MOVIMENTO ===
-local MovementTab
-success, err = pcall(function()
-    MovementTab = Window:CreateTab("Movimento", 4483345998)
-end)
+local abaMovimento = Window:CreateTab("Movimento", 0)
+local secaoMovimento = abaMovimento:CreateSection("Modificação de Movimento")
 
-if not success then
-    handleError("Criação da Aba Movimento", err)
-    return
-end
-
-local MovementSection = MovementTab:CreateSection("Modificação de Movimento")
-
-local WalkSpeedSlider = MovementTab:CreateSlider({
+local sliderVelocidade = abaMovimento:CreateSlider({
     Name = "Velocidade de Caminhada",
     Range = {1, 1000},
     Increment = 1,
     Suffix = "Studs/s",
     CurrentValue = 16,
-    Flag = "WalkSpeed",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
+    Flag = "Velocidade",
+    Callback = function(v) end
 })
 
-local JumpPowerSlider = MovementTab:CreateSlider({
+local sliderPulo = abaMovimento:CreateSlider({
     Name = "Força do Pulo",
     Range = {1, 1000},
     Increment = 1,
     Suffix = "Força",
     CurrentValue = 50,
-    Flag = "JumpPower",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
-})
-
-local FlySpeedSlider = MovementTab:CreateSlider({
-    Name = "Velocidade de Voo",
-    Range = {1, 1000},
-    Increment = 1,
-    Suffix = "Studs/s",
-    CurrentValue = 50,
-    Flag = "FlySpeed",
-    Callback = function(Value)
-        -- Será aplicado no botão
-    end,
+    Flag = "Pulo",
+    Callback = function(v) end
 })
 
 -- Botão de aplicar movimento
-MovementTab:CreateButton({
+abaMovimento:CreateButton({
     Name = "Aplicar Modificações de Movimento",
     Callback = function()
-        keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.CurrentValue)
-        keepModifying(humanoid, "JumpPower", JumpPowerSlider.CurrentValue)
-        
-        pcall(function()
-            Rayfield:Notify({
-                Title = "Sucesso!",
-                Content = "Modificações de movimento aplicadas!",
-                Duration = 3,
-                Image = 4483345998,
-            })
-        end)
-    end,
+        if humanoid then
+            manterModificacao(humanoid, "WalkSpeed", sliderVelocidade.CurrentValue)
+            manterModificacao(humanoid, "JumpPower", sliderPulo.CurrentValue)
+            
+            pcall(function()
+                Rayfield:Notify({
+                    Title = "SUCESSO",
+                    Content = "Modificações aplicadas!",
+                    Duration = 3,
+                    Image = 0,
+                })
+            end)
+        end
+    end
 })
 
--- Sistema de Voo
-local flyEnabled = false
-local flyConnection
-local flyVelocity, flyGyro
+-- Seção de Teletransporte
+abaMovimento:CreateSection("Teletransporte por Clique")
 
-local function enableFly()
-    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-    
-    flyVelocity = Instance.new("BodyVelocity")
-    flyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    flyVelocity.P = 5000
-    flyVelocity.Parent = character.PrimaryPart
-    
-    flyGyro = Instance.new("BodyGyro")
-    flyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    flyGyro.P = 5000
-    flyGyro.Parent = character.PrimaryPart
-    
-    flyConnection = RunService.Heartbeat:Connect(function()
-        local lookVector = Camera.CFrame.LookVector
-        local rightVector = Camera.CFrame.RightVector
-        local upVector = Vector3.new(0, 1, 0)
-        
-        local moveVector = Vector3.new(0, 0, 0)
-        
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveVector += lookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveVector -= lookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveVector -= rightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            moveVector += rightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveVector += upVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-            moveVector -= upVector
-        end
-        
-        if moveVector.Magnitude > 0 then
-            moveVector = moveVector.Unit * FlySpeedSlider.CurrentValue
-        end
-        
-        flyVelocity.Velocity = moveVector
-        flyGyro.CFrame = Camera.CFrame
-    end)
-    
-    table.insert(connections, flyConnection)
-end
-
-local function disableFly()
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
-    
-    if flyVelocity then
-        flyVelocity:Destroy()
-        flyVelocity = nil
-    end
-    
-    if flyGyro then
-        flyGyro:Destroy()
-        flyGyro = nil
-    end
-    
-    humanoid:ChangeState(Enum.HumanoidStateType.Running)
-end
-
-MovementTab:CreateToggle({
-    Name = "Voo por Câmera",
+abaMovimento:CreateToggle({
+    Name = "Ativar Teletransporte",
     CurrentValue = false,
-    Flag = "FlyToggle",
-    Callback = function(Value)
-        flyEnabled = Value
-        if flyEnabled then
-            enableFly()
-            pcall(function()
-                Rayfield:Notify({
-                    Title = "Voo Ativado!",
-                    Content = "Use WASD + Espaço/Ctrl",
-                    Duration = 3,
-                    Image = 4483345998,
-                })
-            end)
-        else
-            disableFly()
-            pcall(function()
-                Rayfield:Notify({
-                    Title = "Voo Desativado!",
-                    Content = "Voo desativado",
-                    Duration = 3,
-                    Image = 4483345998,
-                })
-            end)
-        end
-    end,
-})
-
--- Sistema de Noclip
-local noclipEnabled = false
-local noclipConnection
-
-local function enableNoclip()
-    noclipConnection = RunService.Stepped:Connect(function()
-        if character and character.PrimaryPart then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
+    Flag = "Teletransporte",
+    Callback = function(valor)
+        teletransporteAtivado = valor
+        if teletransporteAtivado then
+            conexaoTeletransporte = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    onClickTeletransporte()
                 end
-            end
-        end
-    end)
-    
-    table.insert(connections, noclipConnection)
-end
-
-local function disableNoclip()
-    if noclipConnection then
-        noclipConnection:Disconnect()
-        noclipConnection = nil
-    end
-    
-    if character then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
-    end
-end
-
-MovementTab:CreateToggle({
-    Name = "Noclip",
-    CurrentValue = false,
-    Flag = "NoclipToggle",
-    Callback = function(Value)
-        noclipEnabled = Value
-        if noclipEnabled then
-            enableNoclip()
+            end)
+            table.insert(connections, conexaoTeletransporte)
             pcall(function()
                 Rayfield:Notify({
-                    Title = "Noclip Ativado!",
-                    Content = "Atravessar paredes ativado",
+                    Title = "TELETRANSPORTE ATIVADO",
+                    Content = "Clique para teletransportar!",
                     Duration = 3,
-                    Image = 4483345998,
+                    Image = 0,
                 })
             end)
         else
-            disableNoclip()
+            if conexaoTeletransporte then
+                conexaoTeletransporte:Disconnect()
+                conexaoTeletransporte = nil
+            end
             pcall(function()
                 Rayfield:Notify({
-                    Title = "Noclip Desativado!",
-                    Content = "Noclip desativado",
+                    Title = "TELETRANSPORTE DESATIVADO",
+                    Content = "Teletransporte desativado",
                     Duration = 3,
-                    Image = 4483345998,
+                    Image = 0,
                 })
             end)
         end
-    end,
+    end
+})
+
+abaMovimento:CreateParagraph({
+    Title = "Como usar",
+    Content = "Ative o teletransporte e clique em qualquer lugar para se teletransportar"
 })
 
 -- === ABA: JOGADOR ===
-local PlayerTab
-success, err = pcall(function()
-    PlayerTab = Window:CreateTab("Jogador", 4483345998)
-end)
+local abaJogador = Window:CreateTab("Jogador", 0)
+local secaoJogador = abaJogador:CreateSection("Modificações do Jogador")
 
-if not success then
-    handleError("Criação da Aba Jogador", err)
-    return
-end
+-- God Mode melhorado
+local godModeAtivado = false
+local conexaoGodMode
+local vidaDeus = 1e9
 
-local PlayerSection = PlayerTab:CreateSection("Modificações do Jogador")
-
--- God Mode
-local godEnabled = false
-local healthConnection
-local godHealth = 1e9
-
-local function enableGodMode()
-    keepModifying(humanoid, "MaxHealth", godHealth)
-    keepModifying(humanoid, "Health", godHealth)
+local function ativarGodMode()
+    -- Modificar Humanoid
+    if humanoid then
+        manterModificacao(humanoid, "MaxHealth", vidaDeus)
+        manterModificacao(humanoid, "Health", vidaDeus)
+    end
     
-    healthConnection = humanoid.StateChanged:Connect(function(_, newState)
-        if newState == Enum.HumanoidStateType.Dead then
-            humanoid:ChangeState(Enum.HumanoidStateType.Running)
-            humanoid.Health = godHealth
-        end
-    end)
-    
-    table.insert(connections, healthConnection)
-    
+    -- Procurar por outros sistemas de vida
     for _, obj in pairs(character:GetDescendants()) do
         if obj:IsA("NumberValue") or obj:IsA("IntValue") then
             if string.find(string.lower(obj.Name), "health") or 
-               string.find(string.lower(obj.Name), "hp") then
-                keepModifying(obj, "Value", godHealth)
+               string.find(string.lower(obj.Name), "hp") or
+               string.find(string.lower(obj.Name), "vida") then
+                manterModificacao(obj, "Value", vidaDeus)
             end
         end
     end
     
+    -- Bloquear morte
+    conexaoGodMode = humanoid.StateChanged:Connect(function(_, novoEstado)
+        if novoEstado == Enum.HumanoidStateType.Dead then
+            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+            if humanoid then
+                humanoid.Health = vidaDeus
+            end
+        end
+    end)
+    
+    table.insert(connections, conexaoGodMode)
+    
     pcall(function()
         Rayfield:Notify({
-            Title = "God Mode Ativado!",
+            Title = "GOD MODE ATIVADO",
             Content = "Imortalidade ativada!",
             Duration = 3,
-            Image = 4483345998,
+            Image = 0,
         })
     end)
 end
 
-local function disableGodMode()
-    if healthConnection then
-        healthConnection:Disconnect()
-        healthConnection = nil
+local function desativarGodMode()
+    if conexaoGodMode then
+        conexaoGodMode:Disconnect()
+        conexaoGodMode = nil
     end
     
-    if originalValues[humanoid] then
+    -- Restaurar valores originais
+    if humanoid and originalValues[humanoid] then
         if originalValues[humanoid].MaxHealth then
             humanoid.MaxHealth = originalValues[humanoid].MaxHealth
         end
@@ -672,75 +557,128 @@ local function disableGodMode()
     
     pcall(function()
         Rayfield:Notify({
-            Title = "God Mode Desativado!",
+            Title = "GOD MODE DESATIVADO",
             Content = "Imortalidade desativada",
             Duration = 3,
-            Image = 4483345998,
+            Image = 0,
         })
     end)
 end
 
-PlayerTab:CreateToggle({
+abaJogador:CreateToggle({
     Name = "God Mode",
     CurrentValue = false,
-    Flag = "GodModeToggle",
-    Callback = function(Value)
-        godEnabled = Value
-        if godEnabled then
-            enableGodMode()
+    Flag = "GodMode",
+    Callback = function(valor)
+        godModeAtivado = valor
+        if godModeAtivado then
+            ativarGodMode()
         else
-            disableGodMode()
+            desativarGodMode()
         end
-    end,
+    end
 })
 
--- Sistema de Unload
-PlayerTab:CreateButton({
-    Name = "DESCARREGAR SCRIPT COMPLETAMENTE",
+-- Botão de diagnóstico
+abaJogador:CreateButton({
+    Name = "Rodar Diagnóstico",
+    Callback = function()
+        diagnosticar()
+        pcall(function()
+            Rayfield:Notify({
+                Title = "DIAGNÓSTICO",
+                Content = "Verifique o console (F9) para resultados",
+                Duration = 3,
+                Image = 0,
+            })
+        end)
+    end
+})
+
+-- Sistema de persistência após morte
+player.CharacterAdded:Connect(function(novoPersonagem)
+    character = novoPersonagem
+    humanoid = character:WaitForChild("Humanoid")
+    
+    pcall(function()
+        Rayfield:Notify({
+            Title = "RESPAWN DETECTADO",
+            Content = "Reaplicando modificações...",
+            Duration = 3,
+            Image = 0,
+        })
+    end)
+    
+    wait(1)
+    
+    -- Reaplicar movimento
+    manterModificacao(humanoid, "WalkSpeed", sliderVelocidade.CurrentValue)
+    manterModificacao(humanoid, "JumpPower", sliderPulo.CurrentValue)
+    
+    -- Reaplicar God Mode
+    if godModeAtivado then
+        ativarGodMode()
+    end
+    
+    -- Reaplicar Aimbot
+    if aimbotAtivado then
+        conexaoAimbot = RunService.RenderStepped:Connect(atualizarAimbot)
+        table.insert(connections, conexaoAimbot)
+    end
+    
+    -- Reaplicar Teletransporte
+    if teletransporteAtivado then
+        conexaoTeletransporte = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                onClickTeletransporte()
+            end
+        end)
+        table.insert(connections, conexaoTeletransporte)
+    end
+end)
+
+-- Botão de unload
+abaJogador:CreateButton({
+    Name = "DESCARREGAR SCRIPT",
     Callback = function()
         pcall(function()
             Rayfield:Notify({
-                Title = "Descarregando...",
+                Title = "DESCARREGANDO...",
                 Content = "Removendo todas as modificações",
                 Duration = 3,
-                Image = 4483345998,
+                Image = 0,
             })
         end)
         
         -- Desativar tudo
-        if flyEnabled then
-            disableFly()
+        if conexaoAimbot then
+            conexaoAimbot:Disconnect()
+            conexaoAimbot = nil
         end
         
-        if noclipEnabled then
-            disableNoclip()
+        if conexaoGodMode then
+            conexaoGodMode:Disconnect()
+            conexaoGodMode = nil
         end
         
-        if godEnabled then
-            disableGodMode()
-        end
-        
-        if aimbotEnabled then
-            aimbotEnabled = false
-            if aimbotConnection then
-                aimbotConnection:Disconnect()
-                aimbotConnection = nil
-            end
+        if conexaoTeletransporte then
+            conexaoTeletransporte:Disconnect()
+            conexaoTeletransporte = nil
         end
         
         -- Desconectar todas as conexões
-        for _, connection in pairs(connections) do
-            if connection then
-                connection:Disconnect()
+        for _, conexao in pairs(connections) do
+            if conexao then
+                conexao:Disconnect()
             end
         end
         
-        -- Resetar valores originais
-        for obj, values in pairs(originalValues) do
-            if obj and obj.Parent then
-                for valueName, originalValue in pairs(values) do
+        -- Restaurar valores originais
+        for objeto, valores in pairs(originalValues) do
+            if objeto and objeto.Parent then
+                for propriedade, valorOriginal in pairs(valores) do
                     pcall(function()
-                        obj[valueName] = originalValue
+                        objeto[propriedade] = valorOriginal
                     end)
                 end
             end
@@ -758,73 +696,21 @@ PlayerTab:CreateButton({
         
         pcall(function()
             Rayfield:Notify({
-                Title = "Script Descarregado!",
+                Title = "SCRIPT DESCARREGADO",
                 Content = "Todas as modificações removidas",
                 Duration = 5,
-                Image = 4483345998,
+                Image = 0,
             })
         end)
-    end,
+    end
 })
 
--- Sistema de persistência após morte
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-    humanoid = character:WaitForChild("Humanoid")
-    
-    pcall(function()
-        Rayfield:Notify({
-            Title = "Respawn Detectado!",
-            Content = "Reaplicando modificações...",
-            Duration = 3,
-            Image = 4483345998,
-        })
-    end)
-    
-    wait(1)
-    
-    -- Reaplicar movimento
-    keepModifying(humanoid, "WalkSpeed", WalkSpeedSlider.CurrentValue)
-    keepModifying(humanoid, "JumpPower", JumpPowerSlider.CurrentValue)
-    
-    -- Reaplicar God Mode
-    if godEnabled then
-        enableGodMode()
-    end
-    
-    -- Reaplicar Aimbot
-    if aimbotEnabled then
-        aimbotConnection = RunService.RenderStepped:Connect(updateAimbot)
-        table.insert(connections, aimbotConnection)
-    end
-    
-    pcall(function()
-        Rayfield:Notify({
-            Title = "Modificações Reaplicadas!",
-            Content = "Todas as funções restauradas",
-            Duration = 3,
-            Image = 4483345998,
-        })
-    end)
-end)
-
-humanoid.Died:Connect(function()
-    pcall(function()
-        Rayfield:Notify({
-            Title = "Morte Detectada!",
-            Content = "Modificações serão restauradas no respawn",
-            Duration = 3,
-            Image = 4483345998,
-        })
-    end)
-end)
-
--- Notificação final de sucesso
+-- Notificação final
 pcall(function()
     Rayfield:Notify({
-        Title = "Hub Inicializado!",
-        Content = "Todos os sistemas carregados com sucesso!",
+        Title = "HUB PRONTO",
+        Content = "Todos os sistemas carregados!",
         Duration = 3,
-        Image = 4483345998,
+        Image = 0,
     })
 end)
