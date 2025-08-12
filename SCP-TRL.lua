@@ -1,33 +1,161 @@
 -- === SCP: THE RED LAKE ULTIMATE HUB ===
--- ENGLISH SCRIPT WITH PORTUGUESE VISUAL ELEMENTS
+-- COM SISTEMA DE DIAGNÓSTICO AVANÇADO E LOGS
 -- ===============================================
 
--- Roblox update detection system
+-- Sistema de arquivos e logs
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local Camera = workspace.CurrentCamera
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Sistema de logs
+local logSystem = {
+    enabled = true,
+    logFolder = "SCP_HUB_LOGS",
+    currentLogFile = nil,
+    maxLogFiles = 10,
+    maxLogSize = 1000000 -- 1MB por arquivo
+}
+
+-- Função para criar diretório de logs
+local function ensureLogDirectory()
+    if not isfolder(logSystem.logFolder) then
+        makefolder(logSystem.logFolder)
+    end
+end
+
+-- Função para criar novo arquivo de log
+local function createNewLogFile()
+    ensureLogDirectory()
+    local timestamp = os.date("%Y%m%d_%H%M%S")
+    local fileName = logSystem.logFolder .. "/diagnostic_" .. timestamp .. ".txt"
+    logSystem.currentLogFile = fileName
+    
+    -- Escrever cabeçalho do log
+    local header = [[
+=== SCP HUB DIAGNOSTIC LOG ===
+Data: ]] .. os.date("%Y-%m-%d %H:%M:%S") .. [[
+Versão Roblox: ]] .. game:GetService("RunService"):GetRobloxVersion() .. [[
+Jogador: ]] .. player.Name .. [[
+========================================
+
+]]
+    
+    writefile(fileName, header)
+    return fileName
+end
+
+-- Função para escrever no log
+local function writeToLog(message)
+    if not logSystem.enabled then return end
+    
+    if not logSystem.currentLogFile or not isfile(logSystem.currentLogFile) then
+        createNewLogFile()
+    end
+    
+    -- Verificar tamanho do arquivo
+    local success, content = pcall(function()
+        return readfile(logSystem.currentLogFile)
+    end)
+    
+    if success and #content > logSystem.maxLogSize then
+        createNewLogFile()
+    end
+    
+    -- Adicionar timestamp e mensagem
+    local logEntry = "[" .. os.date("%H:%M:%S") .. "] " .. message .. "\n"
+    appendfile(logSystem.currentLogFile, logEntry)
+    
+    -- Também mostrar no console
+    print("[SCP LOG] " .. message)
+end
+
+-- Limpar logs antigos
+local function cleanOldLogs()
+    ensureLogDirectory()
+    local files = listfiles(logSystem.logFolder)
+    
+    -- Ordenar por data (mais recentes primeiro)
+    table.sort(files, function(a, b)
+        return a > b
+    end)
+    
+    -- Manter apenas os logs mais recentes
+    for i = logSystem.maxLogFiles + 1, #files do
+        delfile(files[i])
+    end
+end
+
+-- Inicializar sistema de logs
+spawn(function()
+    cleanOldLogs()
+    createNewLogFile()
+    writeToLog("Sistema de diagnóstico inicializado")
+end)
+
+-- Sistema de versões problemáticas
+local problematicVersions = {
+    ["2.591.568"] = {
+        description = "Menu visual atualizado - God Mode instável",
+        fix = "Usar método alternativo de God Mode com loop contínuo",
+        priority = "high"
+    },
+    ["2.589.456"] = {
+        description = "Mudança no sistema de armas",
+        fix = "Procurar por 'WeaponStats' em vez de 'Configuration'",
+        priority = "medium"
+    },
+    ["2.587.123"] = {
+        description = "Alteração no sistema de Humanoid",
+        fix = "Aumentar frequência de verificação para 3 segundos",
+        priority = "medium"
+    }
+}
+
+-- Sistema de detecção de versão
 local detectedRobloxVersion = "Unknown"
 local lastCheck = tick()
 local detectedChanges = {}
 
--- Function to detect Roblox version
 local function detectRobloxVersion()
     local success, version = pcall(function()
         return game:GetService("RunService"):GetRobloxVersion()
     end)
     
     if success and version then
+        writeToLog("Versão Roblox detectada: " .. version)
+        
         if detectedRobloxVersion ~= version then
             detectedChanges[version] = {
                 timestamp = tick(),
                 changes = "Roblox version changed"
             }
             detectedRobloxVersion = version
-            warn("[SCP HUB] Roblox version detected:", version)
+            
+            writeToLog("MUDANÇA DE VERSÃO DETECTADA")
+            writeToLog("Versão anterior: Unknown")
+            writeToLog("Versão atual: " .. version)
+            
+            -- Verificar se é uma versão problemática
+            if problematicVersions[version] then
+                local problem = problematicVersions[version]
+                writeToLog("VERSÃO PROBLEMÁTICA IDENTIFICADA!")
+                writeToLog("Problema: " .. problem.description)
+                writeToLog("Solução: " .. problem.fix)
+                writeToLog("Prioridade: " .. problem.priority)
+            end
         end
         return version
     end
     return "Unknown"
 end
 
--- Auto-recovery system
+-- Sistema de recuperação automática
 local recoverySystem = {
     attempts = 0,
     maxAttempts = 5,
@@ -41,39 +169,37 @@ local function startRecovery(reason)
     recoverySystem.inRecovery = true
     recoverySystem.attempts = 0
     
-    warn("[SCP HUB] Starting auto-recovery. Reason:", reason)
+    writeToLog("Iniciando recuperação automática. Razão: " .. reason)
     
     local function attemptRecovery()
         recoverySystem.attempts = recoverySystem.attempts + 1
         
         if recoverySystem.attempts > recoverySystem.maxAttempts then
-            warn("[SCP HUB] Recovery failed after", recoverySystem.maxAttempts, "attempts")
+            writeToLog("Falha na recuperação após " .. recoverySystem.maxAttempts .. " tentativas")
             recoverySystem.inRecovery = false
             return false
         end
         
-        warn("[SCP HUB] Recovery attempt", recoverySystem.attempts, "of", recoverySystem.maxAttempts)
+        writeToLog("Tentativa de recuperação " .. recoverySystem.attempts .. " de " .. recoverySystem.maxAttempts)
         
-        -- Wait before next attempt
         wait(recoverySystem.recoveryInterval)
         
-        -- Try to reload critical components
         local success = false
         
-        -- Reload Rayfield if needed
+        -- Recarregar Rayfield se necessário
         if not Rayfield then
             success, msg = pcall(function()
                 Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
             end)
             
             if success then
-                warn("[SCP HUB] Rayfield reloaded successfully")
+                writeToLog("Rayfield recarregado com sucesso")
             else
-                warn("[SCP HUB] Failed to reload Rayfield:", msg)
+                writeToLog("Falha ao recarregar Rayfield: " .. tostring(msg))
             end
         end
         
-        -- Check if character is accessible
+        -- Verificar se o personagem está acessível
         if not player.Character then
             player.CharacterAdded:Wait()
         end
@@ -83,18 +209,17 @@ local function startRecovery(reason)
         
         if humanoid then
             success = true
-            warn("[SCP HUB] Character and Humanoid recovered")
+            writeToLog("Personagem e Humanoid recuperados")
         end
         
         if success then
             recoverySystem.inRecovery = false
-            warn("[SCP HUB] Recovery completed successfully")
+            writeToLog("Recuperação concluída com sucesso")
             
-            -- Reapply all active modifications
+            -- Reaplicar todas as modificações ativas
             reapplyModifications()
             return true
         else
-            -- Try again
             attemptRecovery()
         end
     end
@@ -102,16 +227,16 @@ local function startRecovery(reason)
     attemptRecovery()
 end
 
--- Function to reapply all modifications
+-- Função para reaplicar todas as modificações
 local function reapplyModifications()
-    warn("[SCP HUB] Reapplying all active modifications")
+    writeToLog("Reaplicando todas as modificações ativas")
     
-    -- Reapply God Mode
+    -- Reaplicar God Mode
     if godModeEnabled then
         pcall(enableGodMode)
     end
     
-    -- Reapply speed and jump
+    -- Reaplicar velocidade e pulo
     if walkSpeedSlider and jumpPowerSlider then
         pcall(function()
             maintainModification(humanoid, "WalkSpeed", walkSpeedSlider.CurrentValue)
@@ -119,7 +244,7 @@ local function reapplyModifications()
         end)
     end
     
-    -- Reapply Aimbot
+    -- Reaplicar Aimbot
     if aimbotEnabled then
         pcall(function()
             if aimbotConnection then aimbotConnection:Disconnect() end
@@ -128,7 +253,7 @@ local function reapplyModifications()
         end)
     end
     
-    -- Reapply Teleport
+    -- Reaplicar Teleport
     if teleportEnabled then
         pcall(function()
             if teleportConnection then teleportConnection:Disconnect() end
@@ -142,32 +267,32 @@ local function reapplyModifications()
     end
 end
 
--- Continuous monitoring system
+-- Sistema de monitoramento contínuo
 local function startMonitoring()
     spawn(function()
         while true do
-            wait(5) -- Check every 5 seconds
+            wait(5) -- Verificar a cada 5 segundos
             
-            -- Detect version changes
+            -- Detectar mudanças na versão
             local currentVersion = detectRobloxVersion()
             
-            -- Check if critical components still exist
+            -- Verificar se componentes críticos ainda existem
             if not Rayfield then
-                startRecovery("Rayfield not found")
+                startRecovery("Rayfield não encontrado")
             elseif not humanoid or not humanoid.Parent then
-                startRecovery("Humanoid not found")
+                startRecovery("Humanoid não encontrado")
             elseif not character or not character.Parent then
-                startRecovery("Character not found")
+                startRecovery("Personagem não encontrado")
             end
             
-            -- Check if modifications are active
+            -- Verificar se as modificações estão ativas
             if godModeEnabled and humanoid and humanoid.Health < godHealth * 0.9 then
-                warn("[SCP HUB] God Mode lost detected, reapplying...")
+                writeToLog("Detectada perda de God Mode, reaplicando...")
                 pcall(enableGodMode)
             end
             
             if walkSpeedSlider and humanoid and humanoid.WalkSpeed ~= walkSpeedSlider.CurrentValue then
-                warn("[SCP HUB] Speed loss detected, reapplying...")
+                writeToLog("Detectada perda de velocidade, reaplicando...")
                 pcall(function()
                     maintainModification(humanoid, "WalkSpeed", walkSpeedSlider.CurrentValue)
                 end)
@@ -176,20 +301,20 @@ local function startMonitoring()
     end)
 end
 
--- Load Rayfield with fallback system
+-- Carregar Rayfield com sistema de fallback
 local Rayfield
 local success, msg = pcall(function()
     return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 end)
 
 if not success then
-    warn("[ERROR] Failed to load Rayfield:", msg)
-    startRecovery("Initial Rayfield failure")
+    writeToLog("Falha ao carregar Rayfield: " .. tostring(msg))
+    startRecovery("Falha inicial do Rayfield")
 else
     Rayfield = success and Rayfield or nil
 end
 
--- Fallback system for window creation
+-- Sistema de fallback para criação da janela
 local Window
 success, msg = pcall(function()
     return Rayfield:CreateWindow({
@@ -226,10 +351,10 @@ success, msg = pcall(function()
 end)
 
 if not success or not Window then
-    warn("[ERROR] Failed to create window:", msg)
-    startRecovery("Window creation failure")
+    writeToLog("Falha ao criar janela: " .. tostring(msg))
+    startRecovery("Falha na criação da janela")
 else
-    -- Update loading text with detected version
+    -- Atualizar o texto de carregamento com a versão detectada
     local version = detectRobloxVersion()
     pcall(function()
         Rayfield:Notify({
@@ -241,18 +366,8 @@ else
     end)
 end
 
--- Start monitoring
+-- Iniciar monitoramento
 startMonitoring()
-
--- Global variables with verification system
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
-local Camera = workspace.CurrentCamera
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
 
 -- Robust persistence system
 local connections = {}
@@ -262,7 +377,7 @@ local activeLoops = {}
 -- Modification function with constant verification
 local function maintainModification(object, property, newValue)
     if not object or not object.Parent then 
-        warn("[WARNING] Invalid object:", object)
+        writeToLog("AVISO: Objeto inválido: " .. tostring(object))
         return 
     end
     
@@ -292,7 +407,7 @@ local function maintainModification(object, property, newValue)
             if property == "WalkSpeed" or property == "JumpPower" then
                 local newHumanoid = character:FindFirstChildOfClass("Humanoid")
                 if newHumanoid and newHumanoid ~= object then
-                    warn("[SCP HUB] Humanoid change detected, updating...")
+                    writeToLog("Detectada mudança de Humanoid, atualizando...")
                     maintainModification(newHumanoid, property, newValue)
                 end
             end
@@ -321,6 +436,7 @@ local function teleportTo(position)
                 Image = 0,
             })
         end)
+        writeToLog("Teletransporte executado para posição: " .. tostring(position))
     end
 end
 
@@ -338,7 +454,6 @@ end
 local aimbotEnabled = false
 local aimbotConnection
 
--- Function to find closest player
 local function findClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -363,7 +478,6 @@ local function findClosestPlayer()
     return closestPlayer
 end
 
--- Aimbot update function
 local function updateAimbot()
     if not aimbotEnabled then return end
     
@@ -375,7 +489,6 @@ local function updateAimbot()
     end
 end
 
--- Aimbot control with F key
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.F then
         aimbotEnabled = not aimbotEnabled
@@ -387,6 +500,7 @@ UserInputService.InputBegan:Connect(function(input)
                 Image = 0,
             })
         end)
+        writeToLog("Aimbot " .. (aimbotEnabled and "ativado" or "desativado"))
     end
 end)
 
@@ -394,7 +508,6 @@ end)
 local weaponsTab = Window:CreateTab("Armas", 0)
 local weaponsSection = weaponsTab:CreateSection("Modificação da G18")
 
--- Sliders
 local damageSlider = weaponsTab:CreateSlider({
     Name = "Dano",
     Range = {1, 100},
@@ -425,7 +538,6 @@ local magazineSlider = weaponsTab:CreateSlider({
     Callback = function(v) end
 })
 
--- Apply button with diagnostics
 weaponsTab:CreateButton({
     Name = "Aplicar Modificações da G18",
     Callback = function()
@@ -439,43 +551,45 @@ weaponsTab:CreateButton({
                     Image = 0,
                 })
             end)
+            writeToLog("ERRO: G18 não equipada")
             return
         end
         
         local modificationsApplied = 0
+        writeToLog("Aplicando modificações na G18")
         
-        -- Try multiple paths to find values
         local pathsToTest = {
             "Configuration",
             "GunStats",
             "Values",
             "Stats",
-            "" -- Weapon root
+            ""
         }
         
         for _, path in pairs(pathsToTest) do
             local config = path ~= "" and weapon:FindFirstChild(path) or weapon
             
             if config then
-                -- Test damage
                 if config:FindFirstChild("Damage") then
                     maintainModification(config.Damage, "Value", damageSlider.CurrentValue)
                     modificationsApplied = modificationsApplied + 1
+                    writeToLog("Dano modificado: " .. damageSlider.CurrentValue)
                 end
                 
-                -- Test fire rate
                 if config:FindFirstChild("FireRate") then
                     maintainModification(config.FireRate, "Value", 60 / fireRateSlider.CurrentValue)
                     modificationsApplied = modificationsApplied + 1
+                    writeToLog("Cadência modificada: " .. fireRateSlider.CurrentValue .. " RPM")
                 end
                 
-                -- Test magazine
                 if config:FindFirstChild("MagazineSize") then
                     maintainModification(config.MagazineSize, "Value", magazineSlider.CurrentValue)
                     modificationsApplied = modificationsApplied + 1
+                    writeToLog("Pente modificado: " .. magazineSlider.CurrentValue)
                 elseif config:FindFirstChild("Ammo") then
                     maintainModification(config.Ammo, "Value", magazineSlider.CurrentValue)
                     modificationsApplied = modificationsApplied + 1
+                    writeToLog("Munição modificada: " .. magazineSlider.CurrentValue)
                 end
             end
         end
@@ -489,13 +603,14 @@ weaponsTab:CreateButton({
             })
         end)
         
+        writeToLog("Total de modificações aplicadas: " .. modificationsApplied)
+        
         if modificationsApplied == 0 then
             runDiagnostics()
         end
     end
 })
 
--- Aimbot section
 weaponsTab:CreateSection("Aimbot")
 
 weaponsTab:CreateToggle({
@@ -561,7 +676,6 @@ local jumpPowerSlider = movementTab:CreateSlider({
     Callback = function(v) end
 })
 
--- Apply movement button
 movementTab:CreateButton({
     Name = "Aplicar Modificações de Movimento",
     Callback = function()
@@ -577,11 +691,12 @@ movementTab:CreateButton({
                     Image = 0,
                 })
             end)
+            
+            writeToLog("Velocidade: " .. walkSpeedSlider.CurrentValue .. ", Pulo: " .. jumpPowerSlider.CurrentValue)
         end
     end
 })
 
--- Teleport section
 movementTab:CreateSection("Teletransporte por Clique")
 
 movementTab:CreateToggle({
@@ -631,16 +746,18 @@ movementTab:CreateParagraph({
 local playerTab = Window:CreateTab("Jogador", 0)
 local playerSection = playerTab:CreateSection("Modificações do Jogador")
 
--- Improved God Mode
+-- God Mode variables
 local godModeEnabled = false
 local godModeConnection
 local godHealth = 1e9
 
 local function enableGodMode()
-    -- Modify Humanoid
+    writeToLog("Ativando God Mode")
+    
     if humanoid then
         maintainModification(humanoid, "MaxHealth", godHealth)
         maintainModification(humanoid, "Health", godHealth)
+        writeToLog("God Mode aplicado ao Humanoid")
     end
     
     -- Search for other health systems
@@ -650,6 +767,7 @@ local function enableGodMode()
                string.find(string.lower(obj.Name), "hp") or
                string.find(string.lower(obj.Name), "vida") then
                 maintainModification(obj, "Value", godHealth)
+                writeToLog("God Mode aplicado a valor alternativo: " .. obj.Name)
             end
         end
     end
@@ -661,6 +779,7 @@ local function enableGodMode()
             if humanoid then
                 humanoid.Health = godHealth
             end
+            writeToLog("Morte bloqueada e vida restaurada")
         end
     end)
     
@@ -677,6 +796,8 @@ local function enableGodMode()
 end
 
 local function disableGodMode()
+    writeToLog("Desativando God Mode")
+    
     if godModeConnection then
         godModeConnection:Disconnect()
         godModeConnection = nil
@@ -716,15 +837,18 @@ playerTab:CreateToggle({
     end
 })
 
--- Diagnostics button
-playerTab:CreateButton({
-    Name = "Rodar Diagnóstico",
+-- === DIAGNOSTICS TAB ===
+local diagnosticsTab = Window:CreateTab("Diagnóstico", 0)
+local diagnosticsSection = diagnosticsTab:CreateSection("Ferramentas de Diagnóstico")
+
+diagnosticsTab:CreateButton({
+    Name = "Rodar Diagnóstico Completo",
     Callback = function()
         runDiagnostics()
         pcall(function()
             Rayfield:Notify({
                 Title = "DIAGNÓSTICO",
-                Content = "Verifique o console (F9) para resultados",
+                Content = "Verifique o console (F9) e os arquivos de log",
                 Duration = 3,
                 Image = 0,
             })
@@ -732,10 +856,66 @@ playerTab:CreateButton({
     end
 })
 
+diagnosticsTab:CreateButton({
+    Name = "Limpar Logs Antigos",
+    Callback = function()
+        cleanOldLogs()
+        pcall(function()
+            Rayfield:Notify({
+                Title = "LIMPEZA",
+                Content = "Logs antigos removidos",
+                Duration = 3,
+                Image = 0,
+            })
+        end)
+        writeToLog("Logs antigos limpos pelo usuário")
+    end
+})
+
+diagnosticsTab:CreateButton({
+    Name = "Ver Versões Detectadas",
+    Callback = function()
+        writeToLog("=== HISTÓRICO DE VERSÕES DETECTADAS ===")
+        for version, data in pairs(detectedChanges) do
+            writeToLog("Versão: " .. version .. " em " .. os.date("%Y-%m-%d %H:%M:%S", data.timestamp))
+            writeToLog("Mudanças: " .. data.changes)
+            writeToLog("---")
+        end
+        
+        pcall(function()
+            Rayfield:Notify({
+                Title = "VERSÕES",
+                Content = "Histórico salvo nos logs",
+                Duration = 3,
+                Image = 0,
+            })
+        end)
+    end
+})
+
+diagnosticsTab:CreateSection("Informações do Sistema")
+
+diagnosticsTab:CreateParagraph({
+    Title = "Local dos Logs",
+    Content = "Pasta: " .. logSystem.logFolder .. "\nOs logs são salvos automaticamente"
+})
+
+diagnosticsTab:CreateParagraph({
+    Title = "Versão Atual",
+    Content = "Roblox: " .. detectedRobloxVersion .. "\nDetectada em: " .. os.date("%Y-%m-%d %H:%M:%S")
+})
+
+diagnosticsTab:CreateParagraph({
+    Title = "Status do Sistema",
+    Content = "Logs: " .. (logSystem.enabled and "ATIVADOS" or "DESATIVADOS") .. "\nArquivo atual: " .. (logSystem.currentLogFile or "Nenhum")
+})
+
 -- Death persistence system
 player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     humanoid = character:WaitForChild("Humanoid")
+    
+    writeToLog("RESPAWN DETECTADO - Reaplicando modificações")
     
     pcall(function()
         Rayfield:Notify({
@@ -778,6 +958,8 @@ end)
 playerTab:CreateButton({
     Name = "DESCARREGAR SCRIPT",
     Callback = function()
+        writeToLog("SCRIPT SENDO DESCARREGADO PELO USUÁRIO")
+        
         pcall(function()
             Rayfield:Notify({
                 Title = "DESCARREGANDO...",
@@ -831,6 +1013,9 @@ playerTab:CreateButton({
             Rayfield:Destroy()
         end)
         
+        writeToLog("Todas as modificações removidas")
+        writeToLog("Script completamente descarregado")
+        
         pcall(function()
             Rayfield:Notify({
                 Title = "SCRIPT DESCARREGADO",
@@ -851,3 +1036,5 @@ pcall(function()
         Image = 0,
     })
 end)
+
+writeToLog("SCP Hub inicializado com sucesso")
