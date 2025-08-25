@@ -2,10 +2,15 @@
 -- 🛡️ Diagnóstico, Log, Anti-Kick, Gamepass, Vida Infinita, Fly, Weapon Finder, Unload, Recovery
 -- Pronto para loadstring do GitHub | Feito por DraGamer01
 
------------------- 🛡️ CONFIG INICIAL ------------------
-local scriptVersion = "4.0.0"
+------------------ 🛡️ INICIALIZAÇÃO E DIAGNÓSTICO ------------------
+print("SCP-TRL iniciado! [DEBUG]")
+
+local scriptVersion = "4.0.1"
 local debugEmoji = "🛡️"
 local logFilePath = "C:\\Users\\matia\\AppData\\Roaming\\Swift\\Workspace\\SCP-TRL_log.txt"
+
+-- Protege variáveis globais
+local character, humanoid, restoreLoop, flyBodyVelocity
 
 local function getExecutor()
     return "Swift"
@@ -16,7 +21,11 @@ local logs = {}
 local function log(msg)
     local fullMsg = debugEmoji .. " [" .. os.date("%H:%M:%S") .. "] " .. tostring(msg)
     table.insert(logs, fullMsg)
-    rconsoleprint(fullMsg .. "\n")
+    if rconsoleprint then
+        rconsoleprint(fullMsg .. "\n")
+    else
+        print(fullMsg)
+    end
 end
 local function logError(msg)
     log("ERRO: " .. tostring(msg))
@@ -30,42 +39,46 @@ local function saveLogs()
     end
 end
 
------------------- 🛡️ RECOVERY ------------------
-local function startRecovery(reason)
-    log("Recovery iniciado! Motivo: " .. tostring(reason))
-    if not Rayfield then
-        local loaded, rf = pcall(function() return loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))() end)
-        if loaded and rf then Rayfield = rf log("Rayfield recarregado!") end
+------------------ 🛡️ CARREGAMENTO SEGURO DO RAYFIELD ------------------
+local Rayfield = nil
+local rayfieldUrl = 'https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'
+print("[DEBUG] Baixando Rayfield...")
+local rfcode = game:HttpGet(rayfieldUrl)
+if not rfcode or #rfcode < 50 then
+    logError("Rayfield download falhou ou está vazio!")
+else
+    local loaded, rf = pcall(function() return loadstring(rfcode)() end)
+    if loaded and rf then
+        Rayfield = rf
+        log("Rayfield Sirius carregado!")
+    else
+        logError("Rayfield Sirius não carregado! Erro: " .. tostring(rf))
     end
-    local player = game.Players.LocalPlayer
-    if not player.Character then player.CharacterAdded:Wait() end
-    character = player.Character or player.CharacterAdded:Wait()
-    humanoid = character and character:FindFirstChildOfClass("Humanoid") or nil
-    if humanoid then log("Humanoid recuperado!") end
+end
+
+if not Rayfield then
+    logError("Rayfield NÃO carregado, nenhuma interface será exibida!")
+    return
 end
 
 ------------------ 🛡️ UI RAYFIELD SIRIUS ------------------
-local Rayfield = nil
-local loaded, rf = pcall(function() return loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))() end)
-if loaded and rf then Rayfield = rf log("Rayfield Sirius carregado!") else logError("Rayfield Sirius não carregado!") end
-
-local Window = Rayfield and Rayfield:CreateWindow({
+local Window = Rayfield:CreateWindow({
     Name = "SCP: The Red Lake HUB",
     LoadingTitle = "SCP-TRL",
     LoadingSubtitle = "by DraGamer01",
     ConfigurationSaving = {Enabled = true, FolderName = "SCPTRL"},
     KeySystem = false
-}) or nil
+})
 
 -- Abas do Hub
-local TabConfig = Window and Window:CreateTab("Hub Config", 4483362458)
-local TabDiagnostico = Window and Window:CreateTab("Diagnóstico", 4483362458)
-local TabModArmas = Window and Window:CreateTab("Modificações de Armas", 4483362458)
-local TabVelocidade = Window and Window:CreateTab("Velocidade", 4483362458)
-local TabWeapon = Window and Window:CreateTab("Weapon Finder", 4483362458)
+local TabConfig = Window:CreateTab("Hub Config", 4483362458)
+local TabDiagnostico = Window:CreateTab("Diagnóstico", 4483362458)
+local TabModArmas = Window:CreateTab("Modificações de Armas", 4483362458)
+local TabVelocidade = Window:CreateTab("Velocidade", 4483362458)
+local TabWeapon = Window:CreateTab("Weapon Finder", 4483362458)
 
 ------------------ 🛡️ HUB CONFIG ------------------
-TabConfig and TabConfig:CreateButton({
+TabConfig:CreateButton({
     Name = "UNLOAD COMPLETO",
     Callback = function()
         log("Unload iniciado...")
@@ -81,7 +94,7 @@ TabConfig and TabConfig:CreateButton({
 })
 
 local hubTransparency = 0
-TabConfig and TabConfig:CreateSlider({
+TabConfig:CreateSlider({
     Name = "Transparência do HUB",
     Range = {0, 1},
     Increment = 0.01,
@@ -97,7 +110,7 @@ TabConfig and TabConfig:CreateSlider({
         log("Transparência do HUB: " .. tostring(hubTransparency))
     end
 })
-TabConfig and TabConfig:CreateInput({
+TabConfig:CreateInput({
     Name = "Transparência Numérica",
     PlaceholderText = "0.00 (mín) até 1.00 (máx)",
     RemoveTextAfterFocusLost = false,
@@ -115,7 +128,7 @@ TabConfig and TabConfig:CreateInput({
         end
     end
 })
-TabConfig and TabConfig:CreateButton({Name = "Salvar Logs de Debug", Callback = saveLogs})
+TabConfig:CreateButton({Name = "Salvar Logs de Debug", Callback = saveLogs})
 
 ------------------ 🛡️ DIAGNÓSTICO ------------------
 local function runDiagnostics()
@@ -140,12 +153,11 @@ local function runDiagnostics()
     log("DIAGNÓSTICO COMPLETO:\n" .. game:GetService("HttpService"):JSONEncode(diagnostics))
     saveLogs()
 end
-TabDiagnostico and TabDiagnostico:CreateButton({Name = "Executar Diagnóstico Completo", Callback = runDiagnostics})
-TabDiagnostico and TabDiagnostico:CreateButton({Name = "Salvar Logs de Diagnóstico", Callback = saveLogs})
+TabDiagnostico:CreateButton({Name = "Executar Diagnóstico Completo", Callback = runDiagnostics})
+TabDiagnostico:CreateButton({Name = "Salvar Logs de Diagnóstico", Callback = saveLogs})
 
 ------------------ 🛡️ MODIFICAÇÕES DE ARMAS ------------------
--- Para varredura avançada, envie propriedades via Dex Explorer!
-TabModArmas and TabModArmas:CreateParagraph({
+TabModArmas:CreateParagraph({
     Title = "Varredura Avançada",
     Content = "Use o Dex Explorer para obter propriedades da arma e envie aqui. Assim, todos os campos serão gerados!"
 })
@@ -154,9 +166,9 @@ TabModArmas and TabModArmas:CreateParagraph({
 local flySpeed = 50
 local runSpeed = 16 -- padrão Roblox
 local flying = false
-local flyBodyVelocity = nil
+flyBodyVelocity = nil
 
-TabVelocidade and TabVelocidade:CreateSlider({
+TabVelocidade:CreateSlider({
     Name = "Velocidade do Voo",
     Range = {1, 1000},
     Increment = 1,
@@ -166,7 +178,7 @@ TabVelocidade and TabVelocidade:CreateSlider({
         log("Velocidade de voo ajustada: " .. Value)
     end
 })
-TabVelocidade and TabVelocidade:CreateInput({
+TabVelocidade:CreateInput({
     Name = "Velocidade do Voo Numérica",
     PlaceholderText = "Digite valor entre 1 e 1000",
     RemoveTextAfterFocusLost = false,
@@ -178,7 +190,7 @@ TabVelocidade and TabVelocidade:CreateInput({
         end
     end
 })
-TabVelocidade and TabVelocidade:CreateSlider({
+TabVelocidade:CreateSlider({
     Name = "Velocidade Correndo",
     Range = {1, 1000},
     Increment = 1,
@@ -194,7 +206,7 @@ TabVelocidade and TabVelocidade:CreateSlider({
         end
     end
 })
-TabVelocidade and TabVelocidade:CreateInput({
+TabVelocidade:CreateInput({
     Name = "Velocidade Correndo Numérica",
     PlaceholderText = "Digite valor entre 1 e 1000",
     RemoveTextAfterFocusLost = false,
@@ -214,7 +226,7 @@ TabVelocidade and TabVelocidade:CreateInput({
 })
 
 ------------------ 🛡️ FLY (direção da câmera) ------------------
-TabVelocidade and TabVelocidade:CreateToggle({
+TabVelocidade:CreateToggle({
     Name = "Voo (acompanha câmera)",
     CurrentValue = false,
     Callback = function(Value)
@@ -252,8 +264,8 @@ TabVelocidade and TabVelocidade:CreateToggle({
 
 ------------------ 🛡️ VIDA INFINITA ------------------
 local infiniteLifeActive = false
-local restoreLoop = nil
-TabConfig and TabConfig:CreateToggle({
+restoreLoop = nil
+TabConfig:CreateToggle({
     Name = "Vida Infinita",
     CurrentValue = false,
     Callback = function(state)
@@ -287,7 +299,7 @@ local function antiKick()
     end)
     log("AntiKick ativo!")
 end
-TabConfig and TabConfig:CreateToggle({
+TabConfig:CreateToggle({
     Name = "Anti-Kick/Anti-Cheat",
     CurrentValue = true,
     Callback = function(state)
@@ -318,7 +330,7 @@ local function findWeaponProperties()
         log("Nenhuma arma detectada no Backpack.")
     end
 end
-TabWeapon and TabWeapon:CreateButton({Name = "Encontrar propriedades das armas e salvar", Callback = findWeaponProperties})
+TabWeapon:CreateButton({Name = "Encontrar propriedades das armas e salvar", Callback = findWeaponProperties})
 
 ------------------ 🛡️ BOOT LOG ------------------
 log("SCP-TRL.lua carregado! Versão: " .. scriptVersion .. " Executor: " .. getExecutor())
