@@ -1,10 +1,11 @@
 -- SCP: The Red Lake - ULTIMATE HUB - Swift Executor Exclusivo (SEM TRANSPARÊNCIA)
 -- Feito para Swift Executor. Não contém nenhum código de transparência de HUB.
 -- Inclui: Fly, Vida Infinita, Anti-Kick, Noclip, WalkSpeed, FlySpeed, FOV, Aimbot, Diagnostics, Weapon Finder
+-- AGORA COM: Buff universal de armas (para todas as armas) configurável e persistente na aba de Modificações de Armas!
 
 print("SCP-TRL iniciado! [Swift Exclusive]")
 
-local scriptVersion = "6.1.0"
+local scriptVersion = "6.2.0"
 local debugEmoji = "🛡️"
 local logFilePath = "C:\\Users\\matia\\AppData\\Roaming\\Swift\\Workspace\\SCP-TRL_log.txt"
 
@@ -165,6 +166,7 @@ TabConfig:CreateButton({
         flying = false
         infiniteLifeActive = false
         noclipActive = false
+        weaponBuffActive = false -- Para o buff universal de armas!
         if flyBodyVelocity and flyBodyVelocity.Parent then flyBodyVelocity:Destroy() log("Fly removido") end
         if restoreLoop then restoreLoop:Disconnect() log("Loop de vida infinita parado") end
         if noclipLoop then noclipLoop:Disconnect() log("Noclip parado") end
@@ -232,11 +234,115 @@ end
 TabDiagnostico:CreateButton({Name = "Executar Diagnóstico Completo", Callback = runDiagnostics})
 TabDiagnostico:CreateButton({Name = "Salvar Logs de Diagnóstico", Callback = saveLogs})
 
------------------- 🛡️ MODIFICAÇÕES DE ARMAS (placeholder) ------------------
+------------------ 🛡️ MODIFICAÇÕES DE ARMAS (UNIVERSAL WEAPON BUFF) ------------------
 local TabModArmas = Window:CreateTab("Modificações de Armas", 4483362458)
+
 TabModArmas:CreateParagraph({
-    Title = "Varredura Avançada",
-    Content = "Use o Dex Explorer para obter propriedades da arma e envie aqui. Assim, todos os campos serão gerados!"
+    Title = "Buff Universal em TODAS as Armas",
+    Content = "Configure abaixo e ative o buff. Modifica todas armas da pasta Tools no ReplicatedStorage."
+})
+
+-- Valores padrões para o buff universal
+local weaponBuffValues = {
+    Damage = 999,
+    RPM = 3000,
+    ReloadTime = 0.1,
+    Spread = 0,
+    Ammo = 9999,
+    TotalAmmo = 99999,
+    BulletsToFire = 1,
+    CanPenetrate = true,
+    HeadshotBonus = true,
+    Range = 9999,
+    Type = "Auto"
+}
+
+-- Interface para editar cada valor
+for attr, default in pairs(weaponBuffValues) do
+    if typeof(default) == "number" then
+        TabModArmas:CreateInput({
+            Name = attr,
+            PlaceholderText = tostring(default),
+            RemoveTextAfterFocusLost = false,
+            Callback = function(text)
+                local val = tonumber(text)
+                if val then weaponBuffValues[attr] = val log("["..attr.."] = "..val) end
+            end
+        })
+    elseif typeof(default) == "boolean" then
+        TabModArmas:CreateToggle({
+            Name = attr,
+            CurrentValue = default,
+            Callback = function(state)
+                weaponBuffValues[attr] = state
+                log("["..attr.."] = " .. tostring(state))
+            end
+        })
+    elseif typeof(default) == "string" then
+        TabModArmas:CreateInput({
+            Name = attr,
+            PlaceholderText = default,
+            RemoveTextAfterFocusLost = false,
+            Callback = function(text)
+                if text ~= "" then weaponBuffValues[attr] = text log("["..attr.."] = "..text) end
+            end
+        })
+    end
+end
+
+-- Patcher forte universal
+local weaponBuffActive = false
+local weaponBuffLoop = nil
+
+local function patchAllWeapons()
+    local rs = game:GetService("ReplicatedStorage")
+    local tools = rs:FindFirstChild("Tools")
+    if not tools then return 0 end
+    local changed = 0
+    for _,tool in ipairs(tools:GetChildren()) do
+        if tool:IsA("Tool") then
+            for attr, val in pairs(weaponBuffValues) do
+                if tool:GetAttribute(attr) ~= nil then
+                    tool:SetAttribute(attr, val)
+                end
+            end
+            changed = changed + 1
+        end
+    end
+    return changed
+end
+
+local function startWeaponBuff()
+    if weaponBuffLoop then return end
+    weaponBuffActive = true
+    weaponBuffLoop = task.spawn(function()
+        while weaponBuffActive do
+            local changed = patchAllWeapons()
+            if changed > 0 then
+                log("Buff universal aplicado em "..changed.." armas!")
+            end
+            task.wait(2)
+        end
+    end)
+end
+
+local function stopWeaponBuff()
+    weaponBuffActive = false
+    weaponBuffLoop = nil
+end
+
+TabModArmas:CreateToggle({
+    Name = "Ativar/Desativar Buff Universal de Armas",
+    CurrentValue = false,
+    Callback = function(state)
+        if state then
+            startWeaponBuff()
+            log("Buff universal de armas ativado!")
+        else
+            stopWeaponBuff()
+            log("Buff universal de armas desativado!")
+        end
+    end
 })
 
 ------------------ 🛡️ MODS PRINCIPAIS ------------------
