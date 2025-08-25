@@ -34,7 +34,7 @@ end
 local function startRecovery(reason)
     log("Recovery iniciado! Motivo: " .. tostring(reason))
     if not Rayfield then
-        local loaded, rf = pcall(function() return loadstring(game:HttpGet('https://sirius.rayfield.dev'))() end)
+        local loaded, rf = pcall(function() return loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))() end)
         if loaded and rf then Rayfield = rf log("Rayfield recarregado!") end
     end
     local player = game.Players.LocalPlayer
@@ -46,7 +46,7 @@ end
 
 ------------------ 🛡️ UI RAYFIELD SIRIUS ------------------
 local Rayfield = nil
-local loaded, rf = pcall(function() return loadstring(game:HttpGet('https://sirius.rayfield.dev'))() end)
+local loaded, rf = pcall(function() return loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))() end)
 if loaded and rf then Rayfield = rf log("Rayfield Sirius carregado!") else logError("Rayfield Sirius não carregado!") end
 
 local Window = Rayfield and Rayfield:CreateWindow({
