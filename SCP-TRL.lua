@@ -1,19 +1,22 @@
--- SCP: The Red Lake - ULTIMATE HUB - SWIFT EXECUTOR EXCLUSIVO
--- 🛡️ Diagnóstico, Log, Anti-Kick, Gamepass, Vida Infinita, Fly, Noclip, Weapon Finder, Unload, Recovery
--- Pronto para loadstring do GitHub | Feito por DraGamer01
+-- SCP: The Red Lake - ULTIMATE HUB - Swift Executor Exclusivo (SEM TRANSPARÊNCIA)
+-- Feito para Swift Executor. Não contém nenhum código de transparência de HUB.
+-- Inclui: Fly, Vida Infinita, Anti-Kick, Noclip, WalkSpeed, FlySpeed, FOV, Aimbot, Diagnostics, Weapon Finder
 
-print("SCP-TRL iniciado! [DEBUG]")
+print("SCP-TRL iniciado! [Swift Exclusive]")
 
-local scriptVersion = "5.0.0"
+local scriptVersion = "6.1.0"
 local debugEmoji = "🛡️"
 local logFilePath = "C:\\Users\\matia\\AppData\\Roaming\\Swift\\Workspace\\SCP-TRL_log.txt"
 
 local character, humanoid, restoreLoop, flyBodyVelocity, noclipLoop = nil, nil, nil, nil, nil
 local flying, infiniteLifeActive, noclipActive = false, false, false
-local runSpeed, flySpeed = 16, 50
+local runSpeed, flySpeed, currentFOV = 16, 50, 70 -- FOV padrão = 70
+
+local logs = {}
 
 local function log(msg)
     local fullMsg = debugEmoji .. " [" .. os.date("%H:%M:%S") .. "] " .. tostring(msg)
+    table.insert(logs, fullMsg)
     if rconsoleprint then rconsoleprint(fullMsg .. "\n") end
     print(fullMsg)
 end
@@ -29,7 +32,7 @@ local function saveLogs()
     end
 end
 
--- Rayfield UI seguro
+-- UI
 local Rayfield = nil
 local rayfieldUrl = 'https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'
 log("[DEBUG] Baixando Rayfield...")
@@ -45,6 +48,7 @@ else
         logError("Rayfield Sirius não carregado! Erro: " .. tostring(rf))
     end
 end
+
 if not Rayfield then
     logError("Rayfield NÃO carregado, nenhuma interface será exibida!")
     return
@@ -58,56 +62,8 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 
-local rayfieldUI = game.CoreGui:FindFirstChild("Rayfield")
-
 ------------------ 🛡️ HUB CONFIG ------------------
 local TabConfig = Window:CreateTab("Hub Config", 4483362458)
-local hubTransparency = 0
-
-TabConfig:CreateSlider({
-    Name = "Transparência do HUB",
-    Range = {0, 1},
-    Increment = 0.01,
-    CurrentValue = hubTransparency,
-    Callback = function(Value)
-        hubTransparency = Value
-        if rayfieldUI then
-            for _,obj in pairs(rayfieldUI:GetDescendants()) do
-                if obj:IsA("Frame") then
-                    pcall(function() obj.BackgroundTransparency = hubTransparency end)
-                end
-                if obj:IsA("TextLabel") or obj:IsA("TextBox") then
-                    pcall(function() obj.TextTransparency = hubTransparency end)
-                end
-            end
-            log("Transparência do HUB ajustada para " .. tostring(hubTransparency))
-        else
-            logError("Rayfield UI não encontrada para transparência")
-        end
-    end
-})
-TabConfig:CreateInput({
-    Name = "Transparência Numérica",
-    PlaceholderText = "0.00 (mín) até 1.00 (máx)",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(text)
-        local val = tonumber(text)
-        if val and val >= 0 and val <= 1 then
-            hubTransparency = val
-            if rayfieldUI then
-                for _,obj in pairs(rayfieldUI:GetDescendants()) do
-                    if obj:IsA("Frame") then
-                        pcall(function() obj.BackgroundTransparency = hubTransparency end)
-                    end
-                    if obj:IsA("TextLabel") or obj:IsA("TextBox") then
-                        pcall(function() obj.TextTransparency = hubTransparency end)
-                    end
-                end
-            end
-            log("Transparência do HUB ajustada para " .. tostring(hubTransparency))
-        end
-    end
-})
 
 TabConfig:CreateButton({
     Name = "Salvar Logs de Debug",
@@ -117,9 +73,9 @@ TabConfig:CreateButton({
     end
 })
 
------------------- 🛡️ VIDA INFINITA ------------------
+------------------ 🛡️ VIDA INFINITA MELHORADA ------------------
 TabConfig:CreateToggle({
-    Name = "Vida Infinita",
+    Name = "Vida Infinita (protegido de NPCs)",
     CurrentValue = false,
     Callback = function(state)
         infiniteLifeActive = state
@@ -128,13 +84,22 @@ TabConfig:CreateToggle({
         character = player.Character or player.CharacterAdded:Wait()
         humanoid = character:FindFirstChildOfClass("Humanoid")
         if infiniteLifeActive and humanoid then
-            restoreLoop = game:GetService("RunService").Heartbeat:Connect(function()
-                if humanoid and humanoid.Health < humanoid.MaxHealth then
-                    humanoid.Health = humanoid.MaxHealth
-                    log("Vida restaurada: " .. humanoid.Health)
-                end
-            end)
-            log("Loop de vida infinita iniciado")
+            if not humanoid:GetAttribute("LifePatched") then
+                humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+                    if infiniteLifeActive and humanoid.Health < humanoid.MaxHealth then
+                        humanoid.Health = humanoid.MaxHealth
+                        log("Vida restaurada: " .. humanoid.Health)
+                    end
+                end)
+                humanoid.StateChanged:Connect(function(_, newState)
+                    if infiniteLifeActive and newState == Enum.HumanoidStateType.Dead then
+                        humanoid.Health = humanoid.MaxHealth
+                        humanoid.PlatformStand = false
+                        log("Bloqueou morte do Humanoid (state Dead)")
+                    end
+                end)
+                humanoid:SetAttribute("LifePatched", true)
+            end
         elseif restoreLoop then
             restoreLoop:Disconnect()
             log("Loop de vida infinita parado")
@@ -203,13 +168,14 @@ TabConfig:CreateButton({
         if flyBodyVelocity and flyBodyVelocity.Parent then flyBodyVelocity:Destroy() log("Fly removido") end
         if restoreLoop then restoreLoop:Disconnect() log("Loop de vida infinita parado") end
         if noclipLoop then noclipLoop:Disconnect() log("Noclip parado") end
+        local rayfieldUI = game.CoreGui:FindFirstChild("Rayfield")
         if rayfieldUI then rayfieldUI:Destroy() log("Rayfield UI removida") end
         character, humanoid, restoreLoop, flyBodyVelocity, noclipLoop = nil, nil, nil, nil, nil
         log("Unload completo.")
     end
 })
 
------------------- 🛡️ DIAGNÓSTICO APRIMORADO ------------------
+------------------ 🛡️ DIAGNÓSTICO ------------------
 local TabDiagnostico = Window:CreateTab("Diagnóstico", 4483362458)
 local function runDiagnostics()
     log("Diagnóstico completo iniciado!")
@@ -266,78 +232,17 @@ end
 TabDiagnostico:CreateButton({Name = "Executar Diagnóstico Completo", Callback = runDiagnostics})
 TabDiagnostico:CreateButton({Name = "Salvar Logs de Diagnóstico", Callback = saveLogs})
 
------------------- 🛡️ MODIFICAÇÕES DE ARMAS ------------------
+------------------ 🛡️ MODIFICAÇÕES DE ARMAS (placeholder) ------------------
 local TabModArmas = Window:CreateTab("Modificações de Armas", 4483362458)
 TabModArmas:CreateParagraph({
     Title = "Varredura Avançada",
     Content = "Use o Dex Explorer para obter propriedades da arma e envie aqui. Assim, todos os campos serão gerados!"
 })
 
------------------- 🛡️ VELOCIDADE E FLY ------------------
-local TabVelocidade = Window:CreateTab("Velocidade", 4483362458)
+------------------ 🛡️ MODS PRINCIPAIS ------------------
+local TabMods = Window:CreateTab("Mods", 4483362458)
 
-TabVelocidade:CreateSlider({
-    Name = "Velocidade do Voo",
-    Range = {1, 1000},
-    Increment = 1,
-    CurrentValue = flySpeed,
-    Callback = function(Value)
-        flySpeed = Value
-        log("Velocidade de voo ajustada: " .. Value)
-    end
-})
-TabVelocidade:CreateInput({
-    Name = "Velocidade do Voo Numérica",
-    PlaceholderText = "Digite valor entre 1 e 1000",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(text)
-        local val = tonumber(text)
-        if val and val >= 1 and val <= 1000 then
-            flySpeed = val
-            log("Velocidade de voo ajustada: " .. tostring(flySpeed))
-        end
-    end
-})
-TabVelocidade:CreateSlider({
-    Name = "Velocidade Correndo",
-    Range = {1, 1000},
-    Increment = 1,
-    CurrentValue = runSpeed,
-    Callback = function(Value)
-        runSpeed = Value
-        local player = game.Players.LocalPlayer
-        character = player.Character or player.CharacterAdded:Wait()
-        humanoid = character:FindFirstChildOfClass("Humanoid")
-        log("WalkSpeed definido: " .. runSpeed)
-        if humanoid then
-            humanoid.WalkSpeed = runSpeed
-        else
-            logError("Humanoid não encontrado para setar WalkSpeed")
-        end
-    end
-})
-TabVelocidade:CreateInput({
-    Name = "Velocidade Correndo Numérica",
-    PlaceholderText = "Digite valor entre 1 e 1000",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(text)
-        local val = tonumber(text)
-        if val and val >= 1 and val <= 1000 then
-            runSpeed = val
-            local player = game.Players.LocalPlayer
-            character = player.Character or player.CharacterAdded:Wait()
-            humanoid = character:FindFirstChildOfClass("Humanoid")
-            log("WalkSpeed definido: " .. tostring(runSpeed))
-            if humanoid then
-                humanoid.WalkSpeed = runSpeed
-            else
-                logError("Humanoid não encontrado para setar WalkSpeed")
-            end
-        end
-    end
-})
-
-TabVelocidade:CreateToggle({
+TabMods:CreateToggle({
     Name = "Voo (acompanha câmera)",
     CurrentValue = false,
     Callback = function(Value)
@@ -355,7 +260,6 @@ TabVelocidade:CreateToggle({
             coroutine.wrap(function()
                 while flying and flyBodyVelocity do
                     local camera = workspace.CurrentCamera
-                    -- Direção na frente da câmera (inclinação e giro)
                     local direction = Vector3.new()
                     local uis = game:GetService("UserInputService")
                     if uis:IsKeyDown(Enum.KeyCode.W) then direction = direction + camera.CFrame.LookVector end
@@ -378,6 +282,190 @@ TabVelocidade:CreateToggle({
             log("Voo desativado")
         end
     end,
+})
+
+------------------ 🛡️ CONFIGURAÇÕES DOS MODS ------------------
+local TabModsConfig = Window:CreateTab("Configurações Mods", 4483362458)
+
+-- FOV
+local FOVInput
+TabModsConfig:CreateSection("FOV")
+TabModsConfig:CreateSlider({
+    Name = "FOV",
+    Range = {40, 120},
+    Increment = 1,
+    CurrentValue = currentFOV,
+    Callback = function(Value)
+        currentFOV = Value
+        workspace.CurrentCamera.FieldOfView = currentFOV
+        if FOVInput then FOVInput:Set(Value) end
+        log("FOV ajustado: "..tostring(Value))
+    end
+})
+FOVInput = TabModsConfig:CreateInput({
+    Name = "FOV Numérico",
+    PlaceholderText = "40-120",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        local val = tonumber(text)
+        if val and val >= 40 and val <= 120 then
+            currentFOV = val
+            workspace.CurrentCamera.FieldOfView = currentFOV
+            log("FOV ajustado: "..tostring(currentFOV))
+        end
+    end
+})
+
+-- Fly Speed
+local FlyInput
+TabModsConfig:CreateSection("Velocidade de Voo")
+TabModsConfig:CreateSlider({
+    Name = "Velocidade do Voo",
+    Range = {1, 1000},
+    Increment = 1,
+    CurrentValue = flySpeed,
+    Callback = function(Value)
+        flySpeed = Value
+        if FlyInput then FlyInput:Set(Value) end
+        log("Velocidade de voo ajustada: " .. Value)
+    end
+})
+FlyInput = TabModsConfig:CreateInput({
+    Name = "Velocidade do Voo Numérica",
+    PlaceholderText = "Digite valor entre 1 e 1000",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        local val = tonumber(text)
+        if val and val >= 1 and val <= 1000 then
+            flySpeed = val
+            log("Velocidade de voo ajustada: " .. tostring(flySpeed))
+        end
+    end
+})
+
+-- WalkSpeed
+local WalkSpeedInput
+TabModsConfig:CreateSection("Velocidade Correndo")
+TabModsConfig:CreateSlider({
+    Name = "Velocidade Correndo",
+    Range = {1, 1000},
+    Increment = 1,
+    CurrentValue = runSpeed,
+    Callback = function(Value)
+        runSpeed = Value
+        if WalkSpeedInput then WalkSpeedInput:Set(Value) end
+        local player = game.Players.LocalPlayer
+        character = player.Character or player.CharacterAdded:Wait()
+        humanoid = character:FindFirstChildOfClass("Humanoid")
+        log("WalkSpeed definido: " .. runSpeed)
+        if humanoid then
+            humanoid.WalkSpeed = runSpeed
+        else
+            logError("Humanoid não encontrado para setar WalkSpeed")
+        end
+    end
+})
+WalkSpeedInput = TabModsConfig:CreateInput({
+    Name = "Velocidade Correndo Numérica",
+    PlaceholderText = "Digite valor entre 1 e 1000",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        local val = tonumber(text)
+        if val and val >= 1 and val <= 1000 then
+            runSpeed = val
+            local player = game.Players.LocalPlayer
+            character = player.Character or player.CharacterAdded:Wait()
+            humanoid = character:FindFirstChildOfClass("Humanoid")
+            log("WalkSpeed definido: " .. tostring(runSpeed))
+            if humanoid then
+                humanoid.WalkSpeed = runSpeed
+            else
+                logError("Humanoid não encontrado para setar WalkSpeed")
+            end
+        end
+    end
+})
+
+------------------ 🛡️ AIMBOT INTEGRADO ------------------
+local TabAimbot = Window:CreateTab("Aimbot", 4483362458)
+local aimbotActive = false
+local selectedWeapon = ""
+
+TabAimbot:CreateInput({
+    Name = "Nome da Arma (exato)",
+    PlaceholderText = "Digite o nome da arma",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        selectedWeapon = text
+        log("Arma do aimbot: " .. selectedWeapon)
+    end
+})
+
+TabAimbot:CreateToggle({
+    Name = "Aimbot",
+    CurrentValue = false,
+    Callback = function(state)
+        aimbotActive = state
+        log("Aimbot " .. (state and "ativado" or "desativado"))
+        if aimbotActive then
+            coroutine.wrap(function()
+                getgenv().aim = true
+                local name = game.Players.LocalPlayer.Name
+                while wait() and aimbotActive do
+                    repeat wait() until game.workspace:FindFirstChild(name)
+                    if selectedWeapon ~= "" then
+                        for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+                            if v.Name == selectedWeapon then
+                                game.Players.LocalPlayer.Character.Humanoid:EquipTool(v)
+                            end
+                        end
+                    end
+                    -- Recarregar se necessário
+                    local crosshair = game:GetService("Players"):FindFirstChild(name).PlayerGui:FindFirstChild("Crosshair")
+                    if crosshair and crosshair:FindFirstChild("Counter") then
+                        if crosshair.Counter.CurrentAmmo.Text == "0" and crosshair.Counter.StoredAmmo.Text == "0" then
+                            for i, v in pairs(game.workspace.Maps.Classic.Interactable.AmmoBoxes.Box:GetDescendants()) do
+                                if v:IsA("ProximityPrompt") then
+                                    local root = game.Players.LocalPlayer.Character.HumanoidRootPart
+                                    root.Anchored = false
+                                    local p = root.CFrame
+                                    root.CFrame = v.Parent.CFrame
+                                    wait(1)
+                                    fireproximityprompt(v)
+                                    wait(1)
+                                    root.CFrame = p
+                                end
+                            end
+                        end
+                    end
+                    -- Forçar recarga
+                    local tool = game.Players.LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+                    if tool and tool:FindFirstChild("Main") then
+                        tool.Main:FireServer("AMMO")
+                    end
+                    -- Encontrar NPC mais próximo
+                    local closestDistance = math.huge
+                    local closestNPC = nil
+                    for _,v in pairs(game:GetService("Workspace").NPCs:GetDescendants()) do
+                        if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Head") then
+                            if v.Parent.Name ~= "Deceased" and v.Parent.Name ~= "Friends" and v.Parent.Name ~= "Survivors" then
+                                local distance = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v.HumanoidRootPart.Position).magnitude
+                                if distance < closestDistance then
+                                    closestDistance = distance
+                                    closestNPC = v
+                                end
+                            end
+                        end
+                    end
+                    if closestNPC then
+                        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closestNPC.Head.Position)
+                    end
+                end
+            end)()
+        else
+            getgenv().aim = false
+        end
+    end
 })
 
 ------------------ 🛡️ WEAPON FINDER ------------------
